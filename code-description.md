@@ -304,6 +304,7 @@ Now the contents of `versioningString` will be: `ghec or ghes > 3.8 \nAND NOT gh
 
 The following variables and constants are used in the script. Except where marked, these are variables.
 
+- **beforeCursor**: Boolean. This is set to true initially. We set it to false as soon as we get to the cursor position during the parsing phase. This allows us to quickly skip any more checking for the cursor position or assigning values related to the versioning message.
 - **currentTagSetID**: a number. This short-lived variable is just used to store the tag set ID of the tag we're currently processing when working out which tags to highlight.
 - **currentTagSpan[nestingLevel]**: an array of numbers. The numbers identify the tag span (and possibly ancestor tag spans) in which the cursor is located. The last element in this array contains the ID of the tag span within which the cursor is directly located. Initially this array is empty, meaning the cursor is not within a tag span. Knowing the current tag span (and any ancestor spans), we can use the tag properties to find out which tag set(s) to highlight.
 - **cursorPosition**: (constant) a vscode.Position (i.e. a line number and the number of character on that line where the cursor currently sits).
