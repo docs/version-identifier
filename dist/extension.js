@@ -31,6 +31,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.activate = void 0;
 const vscode = __importStar(__webpack_require__(1));
+let decoration = vscode.window.createTextEditorDecorationType({});
 function activate(context) {
     let disposableModal = vscode.commands.registerCommand('extension.runExtensionModal', () => {
         runExtension(true);
@@ -47,20 +48,84 @@ function runExtension(isModal) {
         return;
     }
     const text = activeEditor.document.getText();
+    const cursorPosition = activeEditor.selection.active;
+    const positionString = " at the cursor position (line " + (cursorPosition.line + 1) +
+        ", character " + (cursorPosition.character + 1) + ") ";
+    let versionTags = [];
+    let versionDescription = [];
+    let currentTagSpan = [];
+    let tagSetID = [];
+    let beforeCursor = true;
+    let tagCounter = 0;
+    let nestingLevel = -1;
+    let elsedVersions = "";
     const tagRegEx = /\{%-?\s*(ifversion|elsif|else|endif)\s+([^%]*)%\}/g;
     let match;
     while (match = tagRegEx.exec(text)) {
+        tagCounter++;
+        const openingBracketPos = match.index;
+        const currentTagStart = activeEditor.document.positionAt(openingBracketPos);
+        const closingBracketPos = match.index + match[0].length;
+        const currentTagEnd = activeEditor.document.positionAt(closingBracketPos);
+        if (beforeCursor && cursorPosition.isBefore(currentTagEnd)) {
+            beforeCursor = false;
+        }
+        if (match[1] === "ifversion") {
+            nestingLevel++;
+            tagSetID[nestingLevel] = tagCounter;
+            if (beforeCursor) {
+                currentTagSpan[nestingLevel] = tagSetID[nestingLevel];
+                if (nestingLevel > 0) {
+                    versionDescription[nestingLevel] = "AND " + match[2];
+                    elsedVersions = "AND NOT " + match[2];
+                }
+                else {
+                    versionDescription[nestingLevel] = match[2];
+                    elsedVersions = "NOT " + match[2];
+                }
+            }
+        }
+        else if (match[1] === "elsif" && beforeCursor) {
+            currentTagSpan[nestingLevel] = tagSetID[nestingLevel];
+            if (nestingLevel > 0) {
+                versionDescription[nestingLevel] = "AND ";
+            }
+            versionDescription[nestingLevel] += match[2];
+            elsedVersions += "AND NOT " + match[2];
+        }
+        else if (match[1] === "else" && beforeCursor) {
+            currentTagSpan[nestingLevel] = tagSetID[nestingLevel];
+            if (nestingLevel > 0) {
+                versionDescription[nestingLevel] = "AND ";
+            }
+            versionDescription[nestingLevel] = elsedVersions;
+        }
+        else if (match[1] === "endif" && beforeCursor) {
+            elsedVersions = "";
+            versionDescription.pop();
+            currentTagSpan.pop();
+            nestingLevel--;
+        }
+        versionTags.push({
+            tagID: tagCounter,
+            tagSet: tagSetID[nestingLevel],
+            positionVersionTagStart: currentTagStart,
+            positionVersionTagEnd: currentTagEnd
+        });
     }
-    highlightVersionTags();
-    displayVersionMessage(isModal);
+    displayVersionMessage(isModal, versionDescription, elsedVersions);
 }
-function highlightVersionTags() {
+function displayVersionMessage(isModal, versionDescription, elsedVersions = "") {
     var _a, _b;
+    let message = "";
+    for (let description of versionDescription) {
+        message += description + "\n";
+    }
     let lineNumber = parseInt(((_b = (_a = new Error().stack) === null || _a === void 0 ? void 0 : _a.split('\n')[1].match(/:(\d+):\d+\)$/)) === null || _b === void 0 ? void 0 : _b[1]) || '') + 1;
-    console.log("\n-----------\nOn line " + lineNumber + ":\nThis is where I am now.");
-}
-function displayVersionMessage(isModal) {
-    let message = "JUST FOR TESTING";
+    console.log("\n-----------\nOn line " + lineNumber + ":" +
+        "\nThis is where I am now." +
+        "\nelsedVersions: \n" + elsedVersions +
+        "\n\nversionDescription: \n============\n" + message + "============");
     if (isModal) {
         vscode.window.showInformationMessage(message, { modal: true });
     }
