@@ -95,13 +95,15 @@ At the end of the parsing phase we will have:
 
 #### Processing each version tag
 
-While stepping through the file, one tag at a time, we're building three arrays:
+While stepping through the file, one tag at a time, we're building various arrays:
 
 a) An array called `versionTags` that contains details of all the version tags in the file. Each element of this array is an object representing one tag. The properties of this object describe features of the tag: its unique ID, another ID that identifies the tag set the tag belongs to, and the start and end positions of the tag it the VS Code editor.
 
 b) A `versionDescription` array that will contain the description of the versioning at each level of nesting (i.e. `versionDescription[0]` contains the versioning description for un-nested versioning, `versionDescription[1]` contains the versioning description for the first level of nested versioning, and so on). Generally the array will only have `versionDescription[0]`. The combined elements in this array provides the message we'll display to users. As we parse through the file we'll modify this array as we encounter `ifversion`, `elsif`, `else`, and `endif` tags, until we reach the cursor position. At the end of parsing, this array will contain the versioning description for the cursor position.
 
-c) The `currentTagSpan[nestingLevel]` array that will allow us to work out which tags to highlight in the editor. Each element of this array contains the ID of the tag span that affects the text at the cursor position. So the final element in the array always tells us which tag span the cursor is currently directly within. If there are two elements in the array then the cursor is within a nested tag set, with `currentTagSpan[1]` identifing the tag span for the cursor position, and `currentTagSpan[0]` identifing the tag span within which the nested tag set is located. If there's only one element in the array then the cursor is within an un-nested tag set. If there are no elements in the array then there's no versioning at the cursor position.
+c) The `tagSetID` array which records the tag set that the tag we're currently processing belongs to. We need to use an array rather than just a single number, so that when we leave a nested tag set, at an `endif` tag, we know which tag set to step back into. We'll assign the number in `tagSetID[nestingLevel]` to the `tagSet` property of the tag we're currently processing.
+
+d) The `currentTagSpan` array that will allow us to work out which tags to highlight in the editor. Each `currentTagSpan[nestingLevel]` element of this array contains the ID of the tag span that affects the text at the cursor position. So the final element in the array always tells us which tag span the cursor is currently directly within. If there are two elements in the array then the cursor is within a nested tag set, with `currentTagSpan[1]` identifing the tag span for the cursor position, and `currentTagSpan[0]` identifing the tag span within which the nested tag set is located. If there's only one element in the array then the cursor is within an un-nested tag set. If there are no elements in the array then there's no versioning at the cursor position.
 
 Knowing the containing tag span at each level allows us to determine which tag set(s) to highlight for the cursor position. This is possible because each tag belongs to a tag set and we store the ID of the tag set in the `tagSet` property of each tag object.
 
