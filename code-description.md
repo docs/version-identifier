@@ -5,6 +5,17 @@ The purpose of this extension is to identify the versioning that applies at the 
 
 The code is written in TypeScript. This file describes how the code works.
 
+## Contents
+
+- [Terminology](#terminology)
+- []()
+- []()
+- []()
+- []()
+- []()
+- []()
+- []()
+
 ## Terminology
 
 The following key terms are used to explain how the extension was coded.
@@ -24,7 +35,9 @@ A tag set:
 A tag span is the text to which a tag applies. In an un-nested tag set, a tag span begins after the `}` of a version tag and ends with the `}` of the next tag. The `endif` tag has no tag span. For example:
 
 ```
-This text does not belong to a tag span, {% ifversion some-version-name %}this is the ifversion tag span, {% elsif alternative-version %}this is the tag span for an elsif clause, {% else %}this is the tag span for an else clause, {% endif %}and this does not belong to a tag span.
+This text does not belong to a tag span, {% ifversion some-version-name %}this is the ifversion tag span,
+{% elsif alternative-version %}this is the tag span for an elsif clause, {% else %}this is the tag span for
+an else clause, {% endif %}and this does not belong to a tag span.
 ```
 
 If a tag span contains within it a nested tag set, then the tag span will be interrupted by the nested tag set and will continue after the end of the nested tag set.
@@ -100,7 +113,9 @@ When we finish parsing the file, we can work backwards through the `currentTagSp
 For example, let's say we have the following at the beginning of a Markdown file:
 
 ```
-This text is unversioned, {% ifversion ghes %}this is versioned for ghes{% endif %} and this is unversioned. My favorite version is {% ifversion ghec %}GHEC{% elsif fpt %}Free/Pro/Team{% else %}NOT GHES and NOT Free/Pro/Team{% endif %}.
+This text is unversioned, {% ifversion ghes %}this is versioned for ghes{% endif %} and this is unversioned.
+My favorite version is {% ifversion ghec %}GHEC{% elsif fpt %}Free/Pro/Team{% else %}NOT GHES and NOT
+Free/Pro/Team{% endif %}.
 ```
 
 At the beginning of this text, at the start of the file, the `tagSetID`, `versionDescription` and `currentTagSpan` arrays are all empty: we haven't found any versioning yet. We then process the first tag: `ifversion`. We:
@@ -261,7 +276,8 @@ In the following Markdown, let's say the cursor is within the text "GitHub Code 
 ```
 {% ifversion ghec or ghes > 3.8 %}
 
-... within the product called {%ifversion ghes = 3.9 %}CodingStars{% elsif ghes = 3.10 %}LGTM{% else %}GitHub Code Scanning{% endif %} there is ...
+... within the product called {%ifversion ghes = 3.9 %}CodingStars{% elsif ghes = 3.10 %}LGTM{% else %}GitHub Code
+Scanning{% endif %} there is ...
 
 {% endif %}
 ```
