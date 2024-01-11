@@ -334,12 +334,11 @@ Each element of the `versionTags` array is an object containing the following pr
 
 This is a recap of what we do for each type of version tag we find when we're parsing through the Markdown file.
 
-#### `ifversion`
+#### All tags
 
-When we find an `ifversion` tag we:
+We do the following for every tag we encounter during parsing.
+
 - Increment `tagCounter`, to use as a unique ID for this tag. This variable needs to survive from one tag processing to the next.
-- Increment `nestingLevel`. Initially this is -1, so this becomes 0 for an un-nested tag set and 1 for the first nesting level. This variable needs to survive from one tag processing to the next
-- Assign `tagCounter` to `tagSetID[nestingLevel]`. This is the ID of the tag set that this tag belongs to (always the same as the ifversion ID). This array needs to survive from one tag processing to the next.
 - Get the start and end positions of the tag (i.e. the position of `{` and `}`) and assign them to `positionVersionTagStart` and `positionVersionTagEnd`. We do this using the `match` array that contains the tag text (e.g. `{% ifversion ghes %}`) that we found using the regular expression. We do this as follows:
 
   ```
@@ -355,54 +354,51 @@ When we find an `ifversion` tag we:
 
   Note: that `currentTagEnd` is actually the character after the closing bracket.
 
-- Check whether the cursor position is after the end position of the tag. If it is, we:
+- Check whether the cursor position is after the end position of the tag. If it is we set `beforeCursor` to false.
+- Create a new element in the `versionTags` array, containing these properties:
+  - **tagID**: The unique ID (`tagCounter` number).
+  - **tagSet**: The tag set ID (`tagSetID[nestingLevel]` number).
+  - **positionVersionTagStart**: The start position of the tag (`positionVersionTagStart` vscode.Position).
+  - **positionVersionTagEnd**: The end position of the tag (`positionVersionTagEnd` vscode.Position).
+
+#### `ifversion`
+
+When we find an `ifversion` tag we:
+- Increment `nestingLevel`. Initially this is -1, so this becomes 0 for an un-nested tag set and 1 for the first nesting level. This variable needs to survive from one tag processing to the next
+- Assign `tagCounter` to `tagSetID[nestingLevel]`. This is the ID of the tag set that this tag belongs to (always the same as the ifversion ID). This array needs to survive from one tag processing to the next.
+- If `beforeCursor` is true we:
   - Assign `tagCounter` to `currentTagSpan[nestingLevel]`. This array needs to survive from one tag processing to the next so that we can determine which tag span the cursor is currently within, and therefore which tags we need to highlight.
   - Get the version from the tag (e.g. "ghes"), using `match[1]` from the regular expression.
   - Assign the version to `versionDescription[nestingLevel]`.
   - Set `elsedVersions` to `"NOT " + versionDescription[nestingLevel]` (e.g. "NOT ghes"). For nested `ifversion` tags we prepend "\nAND " to the start of the string. This variable needs to survive from one tag processing to the next, so that we can build up a string that describes the versioning for the `else` tag in the tag set.
-- Create a new element in the `versionTags` array, containing these properties:
-  - **tagID**: The unique ID (`tagCounter` number).
-  - **tagSet**: The tag set ID (`tagSetID[nestingLevel]` number).
-  - **versionDescription**: The version description (`versionDescription` array of strings).
-  - **positionVersionTagStart**: The start position of the tag (`positionVersionTagStart` vscode.Position).
-  - **positionVersionTagEnd**: The end position of the tag (`positionVersionTagEnd` vscode.Position).
 
 #### `elsif`
 
-When we find an `elsif` tag we:
-
-- Increment `tagCounter`, to use as a unique ID for this tag.
-- Get the start and end positions of the tag (i.e. the position of `{` and `}`) and assign them to `positionVersionTagStart` and `positionVersionTagEnd`.
-- Check whether the cursor position is after the end position of the tag. If it is, we:
+When we find an `elsif` tag:
+- If `beforeCursor` is true we:
   - Assign `tagSetID[nestingLevel]` to `currentTagSpan[nestingLevel]`.
   - Get the version from the tag (e.g. "ghec").
   - Assign the version to `versionDescription[nestingLevel]`.
   - Set `elsedVersions` to `elsedVersions + " \nAND NOT " + versionDescription[nestingLevel]` (e.g. "NOT ghes \nAND NOT ghec").
-- Create a new element in the `versionTags` array, as above. Note that we don't assign a value to `tagSetID[nestingLevel]` because this tag doesn't start a new tag set. It belongs to the same tag set as the `ifversion` tag. So we use the same `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
+Note that we don't assign a value to `tagSetID[nestingLevel]` because this tag doesn't start a new tag set. It belongs to the same tag set as the `ifversion` tag. So we use the same `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
 
 #### `else`
 
-When we find an `else` tag we:
-
-- Increment `tagCounter`, to use as a unique ID for this tag.
-- Get the start and end positions of the tag (i.e. the position of `{` and `}`) and assign them to `positionVersionTagStart` and `positionVersionTagEnd`.
-- Check whether the cursor position is after the end position of the tag. If it is, we:
+When we find an `else` tag:
+- If `beforeCursor` is true we:
   - Assign `tagSetID[nestingLevel]` to `currentTagSpan[nestingLevel]`.
   - If `nestingLevel` is >0, we set `versionDescription[nestingLevel]` to " AND ".
   - Set `versionDescription[nestingLevel]` to `versionDescription[nestingLevel] + elsedVersions`.
-- Create a new element in the `versionTags` array, as above, again reusing the unmodified `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
+As with `elsif` we again reuse the unmodified `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
 
 #### `endif`
 
-When we find an `endif` tag we:
-
-- Increment `tagCounter`, to use as a unique ID for this tag.
-- Get the start and end positions of the tag (i.e. the position of `{` and `}`) and assign them to `positionVersionTagStart` and `positionVersionTagEnd`.
-- Check whether the cursor position is after the end position of the tag. If it is, we:
+When we find an `endif` tag:
+- If `beforeCursor` is true we:
   - Set `elsedVersions` to `""`.
   - Delete the last element in the `versionDescription` and `currentTagSpan` arrays.
   - Decrement `nestingLevel`. At each `endif` we're stepping out of a level of nesting, or out of versioning altogether this is the `endif` for an un-nested tag set (in which case `nestingLevel` returns to -1).
-- Create a new element in the `versionTags` array, as above, again reusing the unmodified `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
+As with `elsif` we again reuse the unmodified `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
 
 Note: the cursor can never be within an `endif` tag span, because `endif` tags have no tag span. So we'll never use the `tagID` or `versionDescription` properties of an `endif` tag. We'll only use the `tagSet` property (to identify the `endif` tag to highlight when the cursor is somewhere else within this tag set) and the `positionVersionTagStart` and `positionVersionTagEnd` properties (to tell VS Code which characters to highlight for this tag).
 
