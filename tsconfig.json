@@ -3,11 +3,10 @@
 		"removeComments": true,
 		"noEmitHelpers": true,
 		"importHelpers": true,
-		"module": "commonjs",
-		// "module": "Node16",
-		"target": "ES2022",
+		"module": "Node16",
+		"target": "ES2016",
 		"lib": [
-			"ES2022"
+			"ES2016"
 		],
 		"sourceMap": true,
 		"rootDir": "src",

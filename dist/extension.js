@@ -29,128 +29,45 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.deactivate = exports.activate = void 0;
+exports.activate = void 0;
 const vscode = __importStar(__webpack_require__(1));
-let decoration = vscode.window.createTextEditorDecorationType({});
 function activate(context) {
-    let disposable = vscode.commands.registerCommand('vsc-extension-version-tags.highlight-tags', () => {
-        let activeEditor = vscode.window.activeTextEditor;
-        if (!activeEditor) {
-            return;
-        }
-        const text = activeEditor.document.getText();
-        const tagRegEx = /\{%\s*(ifversion|elsif|else|endif)\s+([^%]*)%\}/g;
-        const versionTags = [];
-        let ifversionCounter = 0, currentIfVersionId = 0, currentLevel = 0;
-        let match;
-        while (match = tagRegEx.exec(text)) {
-            const currentTag = match[1];
-            if (currentTag === "ifversion") {
-                ifversionCounter++;
-                currentLevel++;
-                currentIfVersionId = ifversionCounter;
-            }
-            else if (currentTag === "endif") {
-                currentLevel--;
-            }
-            const openingBracketPos = match.index;
-            const currentTagStart = activeEditor.document.positionAt(openingBracketPos);
-            const closingBracketPos = match.index + match[0].length;
-            const currentTagEnd = activeEditor.document.positionAt(closingBracketPos);
-            versionTags.push({
-                ifversionId: currentIfVersionId,
-                level: currentLevel,
-                tag: currentTag,
-                content: match[2],
-                positionVersionTagStart: currentTagStart,
-                positionVersionTagEnd: currentTagEnd
-            });
-            if (currentTag === "endif") {
-                currentIfVersionId--;
-            }
-        }
-        let cursorPos = activeEditor.selection.active;
-        let level = 0;
-        let versionArray = [];
-        let versionString = "";
-        currentIfVersionId = 0;
-        for (let item of versionTags) {
-            if (cursorPos.line < item.positionVersionTagEnd.line) {
-                break;
-            }
-            ;
-            if (cursorPos.line === item.positionVersionTagEnd.line && cursorPos.character < item.positionVersionTagEnd.character) {
-                break;
-            }
-            ;
-            currentIfVersionId = item.ifversionId;
-            if (item.tag === "ifversion") {
-                versionArray[level] = item.content;
-                versionString = item.content;
-                level++;
-            }
-            else if (item.tag === "elsif") {
-                versionArray[level - 1] = item.content;
-                if (level > 1) {
-                    versionString = versionString + item.content;
-                }
-            }
-            else if (item.tag === "else") {
-                versionArray[level - 1] = "zzzzzNOT ";
-                versionString = versionString + " NOTxxxxx " + item.content;
-            }
-            else {
-                currentIfVersionId--;
-                versionArray.pop();
-                level--;
-            }
-        }
-        let message = "";
-        let lineNum = cursorPos.line + 1;
-        let charNum = cursorPos.character + 1;
-        let positionString = `at the cursor position (line ${lineNum}, character ${charNum})`;
-        const ranges = [];
-        versionTags
-            .filter(item => item.ifversionId === currentIfVersionId)
-            .forEach(item => {
-            const range = new vscode.Range(item.positionVersionTagStart, item.positionVersionTagEnd);
-            ranges.push(range);
-        });
-        decoration.dispose();
-        decoration = vscode.window.createTextEditorDecorationType({
-            backgroundColor: 'red',
-            color: 'white'
-        });
-        if (activeEditor) {
-            activeEditor.setDecorations(decoration, ranges);
-        }
-        versionArray = versionArray.map(item => item.trim());
-        if (versionArray.length === 0) {
-            message = "There is no inline versioning " + positionString + ".";
-        }
-        else {
-            message = "The inline versioning " + positionString + " is: " + versionArray.join(" AND ");
-        }
-        vscode.window.showInformationMessage(message, "OK");
-        vscode.window.showInformationMessage("versionString = " + versionString);
+    let disposableModal = vscode.commands.registerCommand('extension.runExtensionModal', () => {
+        runExtension(true);
     });
-    context.subscriptions.push(disposable);
-    let removeDecorationsDisposable = vscode.commands.registerCommand('vsc-extension-version-tags.removeDecorations', () => {
-        decoration.dispose();
-        decoration = vscode.window.createTextEditorDecorationType({});
+    let disposableToast = vscode.commands.registerCommand('extension.runExtensionToast', () => {
+        runExtension(false);
     });
-    context.subscriptions.push(removeDecorationsDisposable);
-    let removeDecorationsOnCursorMove = vscode.window.onDidChangeTextEditorSelection(() => {
-        decoration.dispose();
-        decoration = vscode.window.createTextEditorDecorationType({});
-    });
-    context.subscriptions.push(removeDecorationsOnCursorMove);
+    context.subscriptions.push(disposableModal, disposableToast);
 }
 exports.activate = activate;
-function deactivate() {
-    decoration.dispose();
+function runExtension(isModal) {
+    let activeEditor = vscode.window.activeTextEditor;
+    if (!activeEditor) {
+        return;
+    }
+    const text = activeEditor.document.getText();
+    const tagRegEx = /\{%-?\s*(ifversion|elsif|else|endif)\s+([^%]*)%\}/g;
+    let match;
+    while (match = tagRegEx.exec(text)) {
+    }
+    highlightVersionTags();
+    displayVersionMessage(isModal);
 }
-exports.deactivate = deactivate;
+function highlightVersionTags() {
+    var _a, _b;
+    let lineNumber = parseInt(((_b = (_a = new Error().stack) === null || _a === void 0 ? void 0 : _a.split('\n')[1].match(/:(\d+):\d+\)$/)) === null || _b === void 0 ? void 0 : _b[1]) || '') + 1;
+    console.log("\n-----------\nOn line " + lineNumber + ":\nThis is where I am now.");
+}
+function displayVersionMessage(isModal) {
+    let message = "JUST FOR TESTING";
+    if (isModal) {
+        vscode.window.showInformationMessage(message, { modal: true });
+    }
+    else {
+        vscode.window.showInformationMessage(message, "OK");
+    }
+}
 
 
 /***/ }),

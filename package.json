@@ -1,6 +1,6 @@
 {
-  "name": "my-test-extension",
-  "displayName": "My Test Extension",
+  "name": "versioning-identifier",
+  "displayName": "Versioning Identifier extension",
   "description": "This is just for testing a VS Code extension written in TypeScript.",
   "version": "0.0.1",
   "engines": {
@@ -13,21 +13,31 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
-        {
-            "command": "vsc-extension-version-tags.highlight-tags",
-            "title": "Version tags: Highlight tags"
-        }
+      {
+        "command": "extension.runExtensionModal",
+        "title": "Versioning identification (Modal)"
+      },
+      {
+        "command": "extension.runExtensionToast",
+        "title": "Versioning identification (Toast)"
+      }
     ],
     "keybindings": [
       {
-          "command": "vsc-extension-version-tags.highlight-tags",
-          "key": "ctrl+alt+v",
-          "mac": "ctrl+cmd+v",
-          "when": "editorTextFocus"
+        "command": "extension.runExtensionToast",
+        "key": "ctrl+cmd+v",
+        "mac": "ctrl+cmd+v",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.runExtensionModal",
+        "key": "shift+ctrl+cmd+v",
+        "mac": "shift+ctrl+cmd+v",
+        "when": "editorTextFocus"
       },
       {
         "key": "escape",
-        "command": "vsc-extension-version-tags.removeDecorations",
+        "command": "extension.removeDecorations",
         "when": "editorTextFocus"
       }
     ]
