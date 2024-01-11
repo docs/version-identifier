@@ -19,6 +19,7 @@ The code is written in TypeScript. This file describes how the code works.
   - [Tag object properties](#tag-object-properties)
   - [Per-tag explanation](#per-tag-explanation)
   - [Regular expression](#regular-expression)
+<br/>
 
 ## Terminology
 
