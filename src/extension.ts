@@ -65,16 +65,16 @@ function runExtension(isModal: boolean) {
     const positionString = " at the cursor position (line " + (cursorPosition.line + 1) +
         ", character " + (cursorPosition.character + 1) + ") ";
 
-    // Define the 4 arrays we're going to iteratively populate in the parsing loop:
+    // Define the arrays we're going to iteratively populate in the parsing loop:
     let versionTags: VersionTag[] = [];
     let versionDescription: string[] = [];
+    let elsedVersions: string[] = [];
     let currentTagSpan: number[] = [];
     let tagSetID: number[] = [];
 
     let beforeCursor: Boolean = true; // Set to false when we reach the cursor position during tag parsing
     let tagCounter = 0; // This will be used to assign a unique ID to each ifversion tag
     let nestingLevel = -1; // Increment each time we encounter an ifversion tag, decrement at each endif tag
-    let elsedVersions = ""; // This will be used to store the versions that have been excluded by an ifversion tag
 
     // This regex matches text that starts either
     // with `{% ifversion ` or `{% elsif `
@@ -119,11 +119,11 @@ function runExtension(isModal: boolean) {
                 currentTagSpan[nestingLevel] = tagSetID[nestingLevel]; // The cursor may be within this tag
                 if (nestingLevel >0) {
                     versionDescription[nestingLevel] = "AND " + match[2];
-                    elsedVersions = "AND NOT " + match[2]; // Initialize the list of excluded versions
+                    elsedVersions[nestingLevel] = "AND NOT " + match[2]; // Initialize the list of excluded versions
                 }
                 else {
                     versionDescription[nestingLevel] = match[2];
-                    elsedVersions = "NOT " + match[2];
+                    elsedVersions[nestingLevel] = "NOT " + match[2];
                 }
             }
 
@@ -144,19 +144,19 @@ function runExtension(isModal: boolean) {
                 versionDescription[nestingLevel] = "AND ";
             }
             versionDescription[nestingLevel] += match[2];
-            elsedVersions += "AND NOT " + match[2];
+            elsedVersions[nestingLevel] += "AND NOT " + match[2];
         }
         else if (match[1] === "else" && beforeCursor) {
             currentTagSpan[nestingLevel] = tagSetID[nestingLevel]; // The cursor may be within this tag
             if (nestingLevel >0) {
                 versionDescription[nestingLevel] = "AND ";
             }
-            versionDescription[nestingLevel] = elsedVersions;
+            versionDescription[nestingLevel] = elsedVersions[nestingLevel];
         }
         else if (match[1] === "endif" && beforeCursor) {
-            elsedVersions = ""; // Reset the list of excluded versions
-            versionDescription.pop(); // Remove the version description for this ifversion block
-            currentTagSpan.pop();     // Remove the tag span for this ifversion block
+            elsedVersions.pop();      // Remove the list of excluded versions for the tag set we're leaving
+            versionDescription.pop(); // Remove the version description for the tag set
+            currentTagSpan.pop();     // Remove the tag span for the tag set
             nestingLevel--;           // Decrement the nesting level
         }
 
@@ -222,6 +222,9 @@ function runExtension(isModal: boolean) {
         // }
 
 
+    console.log("\n~~~~~~~~~~~~\nnestingLevel: " + nestingLevel + "\nelseVersions: " + elsedVersions);
+
+
     // Identify and highlight the version tags for the current cursor position:
     //ORIGINALLY:
     //highlightVersionTags(activeEditor, versionTags, currentIfVersionId, level);
@@ -229,7 +232,7 @@ function runExtension(isModal: boolean) {
     // Prepare and display the popup message with versioning information
     //ORIGINALLY:
     //displayVersionMessage(isModal, versionArray, positionString);
-    displayVersionMessage(isModal, versionDescription, elsedVersions);
+    displayVersionMessage(isModal, versionDescription, elsedVersions[nestingLevel+1]);
 
 }  // End of runExtension() function
 
@@ -238,7 +241,7 @@ function runExtension(isModal: boolean) {
 // --------------------------------
 // displayVersionMessage() function
 // --------------------------------
-function displayVersionMessage(isModal: Boolean, versionDescription: string[], elsedVersions: string = "") {
+function displayVersionMessage(isModal: Boolean, versionDescription: string[], tempElsedVersionsString: string = "") {
 
     // Create an array to hold the ranges of text to be highlighted
     //const ranges: vscode.Range[] = [];
@@ -254,7 +257,7 @@ function displayVersionMessage(isModal: Boolean, versionDescription: string[], e
     let lineNumber = parseInt((new Error().stack?.split('\n')[1].match(/:(\d+):\d+\)$/)?.[1]) || '') + 1;
     console.log("\n-----------\nOn line " + lineNumber + ":" +
             "\nThis is where I am now." +
-            "\nelsedVersions: \n" + elsedVersions +
+            "\ntempElsedVersionsString: \n" + tempElsedVersionsString +
             "\n\nversionDescription: \n============\n" + message + "============"
         );
 

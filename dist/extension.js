@@ -53,12 +53,12 @@ function runExtension(isModal) {
         ", character " + (cursorPosition.character + 1) + ") ";
     let versionTags = [];
     let versionDescription = [];
+    let elsedVersions = [];
     let currentTagSpan = [];
     let tagSetID = [];
     let beforeCursor = true;
     let tagCounter = 0;
     let nestingLevel = -1;
-    let elsedVersions = "";
     const tagRegEx = /\{%-?\s*(ifversion|elsif|else|endif)\s+([^%]*)%\}/g;
     let match;
     while (match = tagRegEx.exec(text)) {
@@ -77,11 +77,11 @@ function runExtension(isModal) {
                 currentTagSpan[nestingLevel] = tagSetID[nestingLevel];
                 if (nestingLevel > 0) {
                     versionDescription[nestingLevel] = "AND " + match[2];
-                    elsedVersions = "AND NOT " + match[2];
+                    elsedVersions[nestingLevel] = "AND NOT " + match[2];
                 }
                 else {
                     versionDescription[nestingLevel] = match[2];
-                    elsedVersions = "NOT " + match[2];
+                    elsedVersions[nestingLevel] = "NOT " + match[2];
                 }
             }
         }
@@ -91,17 +91,17 @@ function runExtension(isModal) {
                 versionDescription[nestingLevel] = "AND ";
             }
             versionDescription[nestingLevel] += match[2];
-            elsedVersions += "AND NOT " + match[2];
+            elsedVersions[nestingLevel] += "AND NOT " + match[2];
         }
         else if (match[1] === "else" && beforeCursor) {
             currentTagSpan[nestingLevel] = tagSetID[nestingLevel];
             if (nestingLevel > 0) {
                 versionDescription[nestingLevel] = "AND ";
             }
-            versionDescription[nestingLevel] = elsedVersions;
+            versionDescription[nestingLevel] = elsedVersions[nestingLevel];
         }
         else if (match[1] === "endif" && beforeCursor) {
-            elsedVersions = "";
+            elsedVersions.pop();
             versionDescription.pop();
             currentTagSpan.pop();
             nestingLevel--;
@@ -113,9 +113,10 @@ function runExtension(isModal) {
             positionVersionTagEnd: currentTagEnd
         });
     }
-    displayVersionMessage(isModal, versionDescription, elsedVersions);
+    console.log("\n~~~~~~~~~~~~\nnestingLevel: " + nestingLevel + "\nelseVersions: " + elsedVersions);
+    displayVersionMessage(isModal, versionDescription, elsedVersions[nestingLevel + 1]);
 }
-function displayVersionMessage(isModal, versionDescription, elsedVersions = "") {
+function displayVersionMessage(isModal, versionDescription, tempElsedVersionsString = "") {
     var _a, _b;
     let message = "";
     for (let description of versionDescription) {
@@ -124,7 +125,7 @@ function displayVersionMessage(isModal, versionDescription, elsedVersions = "") 
     let lineNumber = parseInt(((_b = (_a = new Error().stack) === null || _a === void 0 ? void 0 : _a.split('\n')[1].match(/:(\d+):\d+\)$/)) === null || _b === void 0 ? void 0 : _b[1]) || '') + 1;
     console.log("\n-----------\nOn line " + lineNumber + ":" +
         "\nThis is where I am now." +
-        "\nelsedVersions: \n" + elsedVersions +
+        "\ntempElsedVersionsString: \n" + tempElsedVersionsString +
         "\n\nversionDescription: \n============\n" + message + "============");
     if (isModal) {
         vscode.window.showInformationMessage(message, { modal: true });

@@ -101,9 +101,11 @@ a) An array called `versionTags` that contains details of all the version tags i
 
 b) A `versionDescription` array that will contain the description of the versioning at each level of nesting (i.e. `versionDescription[0]` contains the versioning description for un-nested versioning, `versionDescription[1]` contains the versioning description for the first level of nested versioning, and so on). Generally the array will only have `versionDescription[0]`. The combined elements in this array provides the message we'll display to users. As we parse through the file we'll modify this array as we encounter `ifversion`, `elsif`, `else`, and `endif` tags, until we reach the cursor position. At the end of parsing, this array will contain the versioning description for the cursor position.
 
-c) The `tagSetID` array which records the tag set that the tag we're currently processing belongs to. We need to use an array rather than just a single number, so that when we leave a nested tag set, at an `endif` tag, we know which tag set to step back into. We'll assign the number in `tagSetID[nestingLevel]` to the `tagSet` property of the tag we're currently processing.
+c) An `elsedVersions` array containing a negated set of versions for the current tag set - for example, "NOT ghes \nAND NOT ghec". We use this if we come to an `else` tag.
 
-d) The `currentTagSpan` array that will allow us to work out which tags to highlight in the editor. Each `currentTagSpan[nestingLevel]` element of this array contains the ID of the tag span that affects the text at the cursor position. So the final element in the array always tells us which tag span the cursor is currently directly within. If there are two elements in the array then the cursor is within a nested tag set, with `currentTagSpan[1]` identifing the tag span for the cursor position, and `currentTagSpan[0]` identifing the tag span within which the nested tag set is located. If there's only one element in the array then the cursor is within an un-nested tag set. If there are no elements in the array then there's no versioning at the cursor position.
+d) The `tagSetID` array which records the tag set that the tag we're currently processing belongs to. We need to use an array rather than just a single number, so that when we leave a nested tag set, at an `endif` tag, we know which tag set to step back into. We'll assign the number in `tagSetID[nestingLevel]` to the `tagSet` property of the tag we're currently processing.
+
+e) The `currentTagSpan` array that will allow us to work out which tags to highlight in the editor. Each `currentTagSpan[nestingLevel]` element of this array contains the ID of the tag span that affects the text at the cursor position. So the final element in the array always tells us which tag span the cursor is currently directly within. If there are two elements in the array then the cursor is within a nested tag set, with `currentTagSpan[1]` identifing the tag span for the cursor position, and `currentTagSpan[0]` identifing the tag span within which the nested tag set is located. If there's only one element in the array then the cursor is within an un-nested tag set. If there are no elements in the array then there's no versioning at the cursor position.
 
 Knowing the containing tag span at each level allows us to determine which tag set(s) to highlight for the cursor position. This is possible because each tag belongs to a tag set and we store the ID of the tag set in the `tagSet` property of each tag object.
 
@@ -306,9 +308,9 @@ The following variables and constants are used in the script. Except where marke
 
 - **beforeCursor**: Boolean. This is set to true initially. We set it to false as soon as we get to the cursor position during the parsing phase. This allows us to quickly skip any more checking for the cursor position or assigning values related to the versioning message.
 - **currentTagSetID**: a number. This short-lived variable is just used to store the tag set ID of the tag we're currently processing when working out which tags to highlight.
-- **currentTagSpan[nestingLevel]**: an array of numbers. The numbers identify the tag span (and possibly ancestor tag spans) in which the cursor is located. The last element in this array contains the ID of the tag span within which the cursor is directly located. Initially this array is empty, meaning the cursor is not within a tag span. Knowing the current tag span (and any ancestor spans), we can use the tag properties to find out which tag set(s) to highlight.
+- **currentTagSpan[]**: an array of numbers. We store an retrieve values by using `nestingLevel` (i.e., `currentTagSpan[nestingLevel]`). The numbers identify the tag span (and possibly ancestor tag spans) in which the cursor is located. The last element in this array contains the ID of the tag span within which the cursor is directly located. Initially this array is empty, meaning the cursor is not within a tag span. Knowing the current tag span (and any ancestor spans), we can use the tag properties to find out which tag set(s) to highlight.
 - **cursorPosition**: (constant) a vscode.Position (i.e. a line number and the number of character on that line where the cursor currently sits).
-- **elsedVersions**: a string. As we're parsing through the a tag set, we build this string to use if we reach an `else` tag for the current tag set. The string contains an NOT-ed list of the versions in the `ifversion` and and `elsif` tags in the tag set. For example, if the tag set contains `{% ifversion ghes %} ... {%elsif ghec %} ... {% else %}` then, when we reach the `else` tag `elsedVersions` will contain "NOT ghes \nAND NOT ghec". The first time we add a version string to this variable we prepend "NOT ", and for any subsequent strings we prepend " AND NOT ". If a tag set contains an `else` tag we assign the value of `elsedVersions` to `versionDescription[nestingLevel]`, prepending an additional " AND " if `nestingLevel` is >0.
+- **elsedVersions[]**: an array of strings. As we're parsing through the a tag set, we build a string for each nesting level to use if we reach an `else` tag for the current tag set. The string contains an NOT-ed list of the versions in the `ifversion` and and `elsif` tags in the tag set. For example, if the tag set contains `{% ifversion ghes %} ... {%elsif ghec %} ... {% else %}` then, when we reach the `else` tag `elsedVersions[nestingLevel]` will contain "NOT ghes \nAND NOT ghec". The first time we add a version string to this array `elsedVersions[0]` we prepend "NOT ", and for any subsequent strings in any element of the array we prepend " AND NOT ". If a tag set contains an `else` tag we assign the value of `elsedVersions[nestingLevel]` to `versionDescription[nestingLevel]`.
 - **highlightBackgroundColor**: (constant) an array of strings. Each nesting level, including none, has a different background color. For instance: `highlightBackgroundColor[0]`, for tags in an un-nested tag set, might be "red".
 - **highlightForegroundColor**: (constant) an array of strings. The color of the text in the highlighted tags at each nesting level. Generally, where the background colors are all strong/dark colors, all elements of `highlightForegroundColor` will be set to "white".
 - **match[]**: an array of strings. This is used to store the text matched by the regular expression that we use to find version tags in the Markdown file.
@@ -371,7 +373,7 @@ When we find an `ifversion` tag we:
   - Assign `tagCounter` to `currentTagSpan[nestingLevel]`. This array needs to survive from one tag processing to the next so that we can determine which tag span the cursor is currently within, and therefore which tags we need to highlight.
   - Get the version from the tag (e.g. "ghes"), using `match[1]` from the regular expression.
   - Assign the version to `versionDescription[nestingLevel]`.
-  - Set `elsedVersions` to `"NOT " + versionDescription[nestingLevel]` (e.g. "NOT ghes"). For nested `ifversion` tags we prepend "\nAND " to the start of the string. This variable needs to survive from one tag processing to the next, so that we can build up a string that describes the versioning for the `else` tag in the tag set.
+  - Set `elsedVersions[nestingLevel]` to `"NOT " + versionDescription[nestingLevel]` (e.g. "NOT ghes"). For nested `ifversion` tags we prepend "\nAND " to the start of the string. This variable needs to survive from one tag processing to the next, so that we can build up a string that describes the versioning for the `else` tag in the tag set.
 
 #### `elsif`
 
@@ -380,7 +382,7 @@ When we find an `elsif` tag:
   - Assign `tagSetID[nestingLevel]` to `currentTagSpan[nestingLevel]`.
   - Get the version from the tag (e.g. "ghec").
   - Assign the version to `versionDescription[nestingLevel]`.
-  - Set `elsedVersions` to `elsedVersions + " \nAND NOT " + versionDescription[nestingLevel]` (e.g. "NOT ghes \nAND NOT ghec").
+  - Set `elsedVersions[nestingLevel]` to `elsedVersions[nestingLevel] + " \nAND NOT " + versionDescription[nestingLevel]` (e.g. "NOT ghes \nAND NOT ghec").
 Note that we don't assign a value to `tagSetID[nestingLevel]` because this tag doesn't start a new tag set. It belongs to the same tag set as the `ifversion` tag. So we use the same `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
 
 #### `else`
@@ -389,15 +391,14 @@ When we find an `else` tag:
 - If `beforeCursor` is true we:
   - Assign `tagSetID[nestingLevel]` to `currentTagSpan[nestingLevel]`.
   - If `nestingLevel` is >0, we set `versionDescription[nestingLevel]` to " AND ".
-  - Set `versionDescription[nestingLevel]` to `versionDescription[nestingLevel] + elsedVersions`.
+  - Set `versionDescription[nestingLevel]` to `versionDescription[nestingLevel] + elsedVersions[nestingLevel]`.
 As with `elsif` we again reuse the unmodified `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
 
 #### `endif`
 
 When we find an `endif` tag:
 - If `beforeCursor` is true we:
-  - Set `elsedVersions` to `""`.
-  - Delete the last element in the `versionDescription` and `currentTagSpan` arrays.
+  - Delete the last element in the `currentTagSpan`, `versionDescription` and `elsedVersions` arrays.
   - Decrement `nestingLevel`. At each `endif` we're stepping out of a level of nesting, or out of versioning altogether this is the `endif` for an un-nested tag set (in which case `nestingLevel` returns to -1).
 As with `elsif` we again reuse the unmodified `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
 
