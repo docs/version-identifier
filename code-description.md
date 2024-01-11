@@ -8,13 +8,17 @@ The code is written in TypeScript. This file describes how the code works.
 ## Contents
 
 - [Terminology](#terminology)
-- []()
-- []()
-- []()
-- []()
-- []()
-- []()
-- []()
+  - [Tag sets](#tag-sets)
+  - [Tag spans](#tag-spans)
+  - [Version nesting](#version-nesting)
+- [How the code works](#how-the-code-works)
+  - [1. Parsing the Markdown file](#1-parsing-the-markdown-file)
+  - [2. Highlighting tags and displaying a versioning message](#2-highlighting-tags-and-displaying-a-versioning-message)
+- [Reference](#reference)
+  - [Variables and constants in alphabetical order](#variables-and-constants-in-alphabetical-order)
+  - [Tag object properties](#tag-object-properties)
+  - [Per-tag explanation](#per-tag-explanation)
+  - [Regular expression](#regular-expression)
 
 ## Terminology
 
