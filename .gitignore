@@ -1,0 +1,17 @@
+# .gitignore
+
+# Node modules
+node_modules/
+
+# Build files
+dist/
+
+# Environment variables
+.env
+
+# Editor files
+.vscode/
+*.log
+
+# macOS files
+.DS_Store

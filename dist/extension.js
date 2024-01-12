@@ -49,8 +49,6 @@ function runExtension(isModal) {
     }
     const text = activeEditor.document.getText();
     const cursorPosition = activeEditor.selection.active;
-    const positionString = " at the cursor position (line " + (cursorPosition.line + 1) +
-        ", character " + (cursorPosition.character + 1) + ") ";
     let versionTags = [];
     let versionDescription = [];
     let elsedVersions = [];
@@ -113,20 +111,20 @@ function runExtension(isModal) {
             positionVersionTagEnd: currentTagEnd
         });
     }
-    console.log("\n~~~~~~~~~~~~\nnestingLevel: " + nestingLevel + "\nelseVersions: " + elsedVersions);
-    displayVersionMessage(isModal, versionDescription, elsedVersions[nestingLevel + 1]);
+    displayVersionMessage(isModal, cursorPosition, versionDescription);
 }
-function displayVersionMessage(isModal, versionDescription, tempElsedVersionsString = "") {
-    var _a, _b;
+function displayVersionMessage(isModal, cursorPosition, versionDescription) {
+    const positionString = ` at the cursor position (line ${(cursorPosition.line + 1)}, character ${(cursorPosition.character + 1)} ) `;
     let message = "";
-    for (let description of versionDescription) {
-        message += description + "\n";
+    if (versionDescription.length === 0) {
+        message = "There is no inline versioning " + positionString + ".";
     }
-    let lineNumber = parseInt(((_b = (_a = new Error().stack) === null || _a === void 0 ? void 0 : _a.split('\n')[1].match(/:(\d+):\d+\)$/)) === null || _b === void 0 ? void 0 : _b[1]) || '') + 1;
-    console.log("\n-----------\nOn line " + lineNumber + ":" +
-        "\nThis is where I am now." +
-        "\ntempElsedVersionsString: \n" + tempElsedVersionsString +
-        "\n\nversionDescription: \n============\n" + message + "============");
+    else {
+        message = "The inline versioning " + positionString + " is:\n\n";
+        for (let description of versionDescription) {
+            message += description + "\n";
+        }
+    }
     if (isModal) {
         vscode.window.showInformationMessage(message, { modal: true });
     }

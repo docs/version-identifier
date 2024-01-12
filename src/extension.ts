@@ -61,9 +61,7 @@ function runExtension(isModal: boolean) {
     // Get the entire text of the active editor
     const text = activeEditor.document.getText();
 
-    const cursorPosition = activeEditor.selection.active;
-    const positionString = " at the cursor position (line " + (cursorPosition.line + 1) +
-        ", character " + (cursorPosition.character + 1) + ") ";
+    const cursorPosition: vscode.Position = activeEditor.selection.active;
 
     // Define the arrays we're going to iteratively populate in the parsing loop:
     let versionTags: VersionTag[] = [];
@@ -222,9 +220,6 @@ function runExtension(isModal: boolean) {
         // }
 
 
-    console.log("\n~~~~~~~~~~~~\nnestingLevel: " + nestingLevel + "\nelseVersions: " + elsedVersions);
-
-
     // Identify and highlight the version tags for the current cursor position:
     //ORIGINALLY:
     //highlightVersionTags(activeEditor, versionTags, currentIfVersionId, level);
@@ -232,7 +227,10 @@ function runExtension(isModal: boolean) {
     // Prepare and display the popup message with versioning information
     //ORIGINALLY:
     //displayVersionMessage(isModal, versionArray, positionString);
-    displayVersionMessage(isModal, versionDescription, elsedVersions[nestingLevel+1]);
+
+
+    // Note we add 1 to nestingLevel because
+    displayVersionMessage(isModal, cursorPosition, versionDescription);
 
 }  // End of runExtension() function
 
@@ -241,25 +239,21 @@ function runExtension(isModal: boolean) {
 // --------------------------------
 // displayVersionMessage() function
 // --------------------------------
-function displayVersionMessage(isModal: Boolean, versionDescription: string[], tempElsedVersionsString: string = "") {
+function displayVersionMessage(isModal: Boolean, cursorPosition: vscode.Position, versionDescription: string[]) {
 
-    // Create an array to hold the ranges of text to be highlighted
-    //const ranges: vscode.Range[] = [];
-
-    // TODO: REMOVE THIS DEBUGGING CODE:
+    // Note: we add +1 to the line and character numbers because they are zero-based:
+    const positionString = ` at the cursor position (line ${(cursorPosition.line + 1)}, character ${(cursorPosition.character + 1)} ) `;
     let message = "";
-    for (let description of versionDescription) {
-        message += description + "\n";
+
+    if (versionDescription.length === 0) {
+        message = "There is no inline versioning " + positionString + ".";
     }
-
-
-    // For debugging purposes only TODO: DELETE THIS:
-    let lineNumber = parseInt((new Error().stack?.split('\n')[1].match(/:(\d+):\d+\)$/)?.[1]) || '') + 1;
-    console.log("\n-----------\nOn line " + lineNumber + ":" +
-            "\nThis is where I am now." +
-            "\ntempElsedVersionsString: \n" + tempElsedVersionsString +
-            "\n\nversionDescription: \n============\n" + message + "============"
-        );
+    else {
+        message = "The inline versioning " + positionString + " is:\n\n";
+        for (let description of versionDescription) {
+            message += description + "\n";
+        }
+    }
 
     if (isModal) {
         vscode.window.showInformationMessage(
