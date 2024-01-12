@@ -1,22 +1,32 @@
-# my-test-extension README
+# The version-identifier VS Code extension
 
-This is the README for your extension "my-test-extension". After writing up a brief description, we recommend including the following sections.
+This extension for VS Code helps you to identify Liquid-syntax tags used to apply versioning in the Markdown files for GitHub documentation.
+
+An example of versioning in Markdown is:
+
+`This text is not versioned{% ifversion ghes > 3.10 %}, but this only appears in the documentation for GitHub Enterprise Server 3.11 or higher{% endif %}.`
+
+Where there is lots of versioning in a Markdown file, especially where there is versioning nested within other versioned blocks, it can be difficult to be absolutely sure, just by looking at the Markdown, which version of the docs a particular bit of text will, or will not, appear in. And if you want to remove some versioning it can be hard to know which tags you need to delete. This extension makes things a lot easier.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+The extension does two things, it:
+- Displays a message describing the versioning at the current cursor position within the Markdown file.
+- Highlights the version tags that affect the versioning at the cursor position.
 
-For example if there is an image subfolder under your extension project workspace:
+There are options for how you want the message to be displayed. You can show the usual popup "toast" message at the bottom right of VS Code, which disappears after a while. Alternatively, you can display a modal popup, which you have to click to dismiss.
 
-\!\[feature X\]\(images/feature-x.png\)
+To use the extension, either:
+- Use a keypress:
+  - For the "toast" message, press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>v</kbd> (Windows/Linux) or <kbd>control</kbd>+<kbd>command</kbd>+<kbd>v</kbd> (Mac)
+  - For the modal popup, press <kbd>Shift</kbd>+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>v</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>control</kbd>+<kbd>command</kbd>+<kbd>v</kbd> (Mac)
+- Go to the Command Palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>p</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>command</kbd>+<kbd>p</kbd> (Mac)), type `version` and select either **Versioning identification (Toast)** or **Versioning identification (Modal)**.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+TODO: ADD A SCREENSHOT
 
 ## Extension Settings
+
+TODO......
 
 Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
 
@@ -29,43 +39,8 @@ This extension contributes the following settings:
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+None.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+See ........ TODO: LINK TO NOTES
