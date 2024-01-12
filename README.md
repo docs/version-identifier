@@ -1,4 +1,4 @@
-# The version-identifier VS Code extension
+# The version identifier VS Code extension
 
 This extension for VS Code helps you to identify Liquid-syntax tags used to apply versioning in the Markdown files for GitHub documentation.
 
