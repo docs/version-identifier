@@ -111,7 +111,16 @@ function runExtension(isModal) {
             positionVersionTagEnd: currentTagEnd
         });
     }
+    highlightVersionTags(activeEditor, currentTagSpan);
     displayVersionMessage(isModal, cursorPosition, versionDescription);
+}
+function highlightVersionTags(activeEditor, currentTagSpan) {
+    var _a, _b;
+    const ranges = [];
+    for (let elementNumber = currentTagSpan.length - 1; elementNumber >= 0; elementNumber--) {
+        let lineNumber = parseInt(((_b = (_a = new Error().stack) === null || _a === void 0 ? void 0 : _a.split('\n')[1].match(/:(\d+):\d+\)$/)) === null || _b === void 0 ? void 0 : _b[1]) || '') + 1;
+        console.log(`\n-----------\nOn line ${lineNumber}:\n currentTagSpan[${elementNumber}]: ${currentTagSpan[elementNumber]}`);
+    }
 }
 function displayVersionMessage(isModal, cursorPosition, versionDescription) {
     const positionString = ` at the cursor position (line ${(cursorPosition.line + 1)}, character ${(cursorPosition.character + 1)} ) `;
