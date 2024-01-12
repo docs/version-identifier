@@ -124,17 +124,6 @@ function runExtension(isModal: boolean) {
                     elsedVersions[nestingLevel] = "NOT " + match[2];
                 }
             }
-
-            // For debugging purposes only TODO: DELETE THIS:
-            // let lineNumber = parseInt((new Error().stack?.split('\n')[1].match(/:(\d+):\d+\)$/)?.[1]) || '') + 1;
-            // console.log("\n-----------\nOn line " + lineNumber +
-            //     ":\ncursorPosition: " + cursorPosition.line + ", " + cursorPosition.character +
-            //     "\ntagCounter: " + tagCounter +
-            //     "\nnestingLevel: " + nestingLevel +
-            //     "\ncurrentTagStart: " + currentTagStart.line + ", " + currentTagStart.character +
-            //     "\ncurrentTagEnd: " + currentTagEnd.line + ", " + currentTagEnd.character
-            // );
-
         }
         else if (match[1] === "elsif" && beforeCursor) {
             currentTagSpan[nestingLevel] = tagSetID[nestingLevel]; // The cursor may be within this tag
@@ -158,7 +147,6 @@ function runExtension(isModal: boolean) {
             nestingLevel--;           // Decrement the nesting level
         }
 
-
         // For each tag:
         // Add the details of the current version tag to the versionTags array.
         // Each element of the array is an object containing the following properties:
@@ -169,70 +157,38 @@ function runExtension(isModal: boolean) {
             positionVersionTagEnd: currentTagEnd
         });
 
-        // For debugging purposes only TODO: DELETE THIS:
-        // let lineNumber = parseInt((new Error().stack?.split('\n')[1].match(/:(\d+):\d+\)$/)?.[1]) || '') + 1;
-        // console.log("\n================================\nOn line " + lineNumber +
-        //     ":\ncursorPosition: " + cursorPosition.line + ", " + cursorPosition.character +
-        //     ":\nbeforeCursor: " + beforeCursor +
-        //     "\ntagCounter: " + tagCounter +
-        //     "\nnestingLevel: " + nestingLevel +
-        //     "\ncurrentTagStart: " + currentTagStart.line + ", " + currentTagStart.character +
-        //     "\ncurrentTagEnd: " + currentTagEnd.line + ", " + currentTagEnd.character +
-        //     "\nversionTags.length: " + versionTags.length
-        // );
-
-
-        // For debugging purposes only TODO: DELETE THIS:
-        // lineNumber = parseInt((new Error().stack?.split('\n')[1].match(/:(\d+):\d+\)$/)?.[1]) || '') + 1;
-        // //console.log("\n-----------\nOn line " + lineNumber + "\nversionTags:");
-        // let lastTag = versionTags[versionTags.length - 1];
-        // console.log("tagID: " + lastTag.tagID);
-        // console.log("tagSet: " + lastTag.tagSet);
-        // console.log("positionVersionTagStart: " + JSON.stringify(lastTag.positionVersionTagStart));
-        // console.log("positionVersionTagEnd: " + JSON.stringify(lastTag.positionVersionTagEnd));
-        // console.log("match[1]: " + match[1]);
-        // console.log("versionDescription[" + (tagCounter -1) + "]: " + versionDescription[tagCounter -1]);
-
     } // End of the tag parsing loop
 
 
-
-        // Prepare and display the popup message with versioning information
-        // let message = "";
-        // versionArray = versionArray.map(tag => tag.trim());  // Remove leading and trailing spaces
-        // if (versionArray.length === 0) {
-        //     message = "There is no inline versioning " + positionString + ".";
-        // }
-        // else {
-        //     message = "The inline versioning " + positionString + " is:\n\n" + versionArray.join("\nAND ");
-        // }
-
-        // if (isModal) {
-        //     vscode.window.showInformationMessage(
-        //         message,
-        //         { modal: true } // Make the popup modal rather than a "toast" notification
-        //     );
-        // } else {
-        //     vscode.window.showInformationMessage(
-        //         message,
-        //         "OK" // Show a "toast" notification with an "OK" button
-        //     );
-        // }
-
-
     // Identify and highlight the version tags for the current cursor position:
-    //ORIGINALLY:
-    //highlightVersionTags(activeEditor, versionTags, currentIfVersionId, level);
+    highlightVersionTags(activeEditor, currentTagSpan);
 
-    // Prepare and display the popup message with versioning information
-    //ORIGINALLY:
-    //displayVersionMessage(isModal, versionArray, positionString);
-
-
-    // Note we add 1 to nestingLevel because
+    // Prepare and display the message with versioning information:
     displayVersionMessage(isModal, cursorPosition, versionDescription);
 
 }  // End of runExtension() function
+
+
+
+// --------------------------------
+// highlightVersionTags() function
+// --------------------------------
+function highlightVersionTags(activeEditor: vscode.TextEditor | undefined, currentTagSpan: number[]) {
+
+
+    // Create an array to hold the ranges of text to be highlighted
+    const ranges: vscode.Range[] = [];
+
+    for (let elementNumber = currentTagSpan.length - 1; elementNumber >= 0; elementNumber--) {
+
+        // For debugging purposes only TODO: DELETE THIS:
+        let lineNumber = parseInt((new Error().stack?.split('\n')[1].match(/:(\d+):\d+\)$/)?.[1]) || '') + 1;
+        console.log(`\n-----------\nOn line ${lineNumber}:\n currentTagSpan[${elementNumber}]: ${currentTagSpan[elementNumber]}`);
+
+    }
+
+
+}
 
 
 
