@@ -22,7 +22,7 @@ To use the extension, either:
   - For the modal popup, press <kbd>Shift</kbd>+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>v</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>control</kbd>+<kbd>command</kbd>+<kbd>v</kbd> (Mac)
 - Go to the Command Palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>p</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>command</kbd>+<kbd>p</kbd> (Mac)), type `version` and select either **Versioning identification (Toast)** or **Versioning identification (Modal)**.
 
-TODO: ADD A SCREENSHOT
+![Screenshot of the extension in action](images/example-output.png)
 
 ## Extension Settings
 
