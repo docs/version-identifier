@@ -208,8 +208,10 @@ function highlightVersionTags(
 
     let colorIndex = 0; // This will be used to cycle through the color pairs
 
-    // Iterate through the currentTagSpan array:
-    currentTagSpan.forEach(tagID => {
+    // Iterate backwards through the currentTagSpan array:
+    for (let i = currentTagSpan.length - 1; i >= 0; i--) {
+        let tagID = currentTagSpan[i];
+
         // For each tag span in currentTagSpan array (i.e. the tag span that lets us work out
         // which tag set we're going to highlight at a particular nesting level),
         // fetch one pair of colors from the colorPairs array declared at the top of this file.
@@ -257,7 +259,7 @@ function highlightVersionTags(
             activeEditor.setDecorations(decorationDefinition, decorationsArray);
         }
         colorIndex++; // Increment the color index so that the next tag set will use a different color pair
-    });
+    }
 } // End of highlightVersionTags() function
 
 // --------------------------------

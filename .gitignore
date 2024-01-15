@@ -12,3 +12,6 @@ dist/
 
 # macOS files
 .DS_Store
+
+# Backups
+src-BAK/

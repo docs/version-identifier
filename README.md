@@ -26,16 +26,48 @@ TODO: ADD A SCREENSHOT
 
 ## Extension Settings
 
-TODO......
+You can change the settings for the tag highlighting and the keyboard shortcuts to run the extension.
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+### Tag highlighting colors
 
-For example:
+The extension uses an array of color pairs (background color and the color of the text) to highlight the version tags. You can change the colors by editing the `versionIdentifier.colors` setting in your `settings.json` file.
 
-This extension contributes the following settings:
+To change the highlighing colors:
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+1. Open the VS Code settings editor (<kbd>Ctrl</kbd>+<kbd>,</kbd> (Windows/Linux) or <kbd>command</kbd>+<kbd>,</kbd> (Mac)).
+1. Search for `version`.
+1. Under "Version-identifier: Color Pairs", click **Edit in settings.json**.
+1. Change the colors in the `versionIdentifier.colors` array as required. For example:
+
+   ```json
+       "version-identifier.colorPairs": [
+        {
+            "backgroundColor": "orange",
+            "color": "blue"
+        },
+        {
+            "backgroundColor": "yellow",
+            "color": "red"
+        },
+        {
+            "backgroundColor": "green",
+            "color": "black"
+        }
+    ]
+    ```
+
+### Keyboard shortcuts
+
+To change the default keyboard shortcuts:
+
+1. Open the command palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>p</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>command</kbd>+<kbd>p</kbd> (Mac)).
+1. Search for `shortcut`.
+1. Select **Preferences: Open Keyboard Shortcuts** (note: not **Preferences: Open Keyboard Shortcuts (JSON)**).
+1. Search for `versioning`.
+1. Hover over **Versioning identification (Toast)** or **Versioning identification (Modal)** and click the pencil icon to the left of the command name.
+1. Press the key combination you want to use for the command, then press Enter.
+
+The new shortcut is immediately available for use.
 
 ## Known Issues
 
