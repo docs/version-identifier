@@ -1,22 +1,30 @@
 import * as vscode from 'vscode';
 
+// Create a decorator type that we'll use to highlight the version tags.
+// We need to declare it here, outside of the activate() function,
+// so that we can use dispose() to remove any decorations that were applied
+// in a previous run of the extension.
+let decoration = vscode.window.createTextEditorDecorationType({});
+
 // The VersionTag interface defines the structure of the objects that will be used in the versionTags array.
 // Each element of the versionTags array will be an object that describes a single Liquid version tag,
 // and will contain the following properties:
 interface VersionTag {
-    tagID: number;    // The unique ID of the version tag
-    tagSet: number;   // The ID of the tag set to which the tag belongs
-    positionVersionTagStart: vscode.Position; // The start position of the version tag
-    positionVersionTagEnd: vscode.Position;   // The end position of the version tag
+  tagID: number;    // The unique ID of the version tag
+  tagSet: number;   // The ID of the tag set to which the tag belongs
+  positionVersionTagStart: vscode.Position; // The start position of the version tag
+  positionVersionTagEnd: vscode.Position;   // The end position of the version tag
 }
 
-// Create an array to store all of the text decorations that we apply to the editor,
-// so that we can remove them all later in a single operation.
-// We need to declare it here, outside of the activate() function,
-// so that we can it in the deactivate() function
-// at the end of this file.
-let decorationDefinitionsArray: vscode.TextEditorDecorationType[] = [];
-
+// Create an array of objects, each of which contains a pair of colors.
+// We'll use this to highlight the tags of each tag set at a particular version nesting level
+// in a different color.
+const colorPairs = [
+    { backgroundColor: 'red', color: 'white' },
+    { backgroundColor: 'blue', color: 'yellow' },
+    { backgroundColor: 'green', color: 'black' }
+];
+let colorIndex = 0; // This will be used to cycle through the color pairs
 
 // --------------------------------
 // activate() function
@@ -24,37 +32,31 @@ let decorationDefinitionsArray: vscode.TextEditorDecorationType[] = [];
 export function activate(context: vscode.ExtensionContext) {
 
     // Register a command to run the extension, using a modal dialog box for the version message.
-    let disposableModal = vscode.commands.registerCommand('version-identifier.runExtensionModal', () => {
-        runExtension(true);
+    let disposableModal = vscode.commands.registerCommand('extension.runExtensionModal', () => {
+    runExtension(true);
     });
 
     // Register a command to run the extension, using a "toast" popup for the version message.
-    let disposableToast = vscode.commands.registerCommand('version-identifier.runExtensionToast', () => {
-        runExtension(false);
+    let disposableToast = vscode.commands.registerCommand('extension.runExtensionToast', () => {
+    runExtension(false);
     });
 
     // Register a command to remove the decorations.
     // The command is defined in package.json and is bound to the escape key
     let removeDecorationsDisposable = vscode.commands.registerCommand(
-            'version-identifier.removeDecorations', () => {
-        // Remove all of the decorations that have been applied to the editor:
-        decorationDefinitionsArray.forEach(decoration => decoration.dispose());
-        decorationDefinitionsArray = []; // Clear the array
+            'extension.removeDecorations', () => {
+        decoration.dispose();  // Remove any text decorations
+        decoration = vscode.window.createTextEditorDecorationType({});
     });
 
     // Listen for selection changes in the editor
     let removeDecorationsOnCursorMove =
-    vscode.window.onDidChangeTextEditorSelection(() => {
-        decorationDefinitionsArray.forEach(decoration => decoration.dispose());
-        decorationDefinitionsArray = [];
+            vscode.window.onDidChangeTextEditorSelection(() => {
+        decoration.dispose();  // Remove any text decorations
+        decoration = vscode.window.createTextEditorDecorationType({});
     });
 
-    context.subscriptions.push(
-        disposableModal,
-        disposableToast,
-        removeDecorationsDisposable,
-        removeDecorationsOnCursorMove
-    );
+    context.subscriptions.push(disposableModal, disposableToast, removeDecorationsDisposable, removeDecorationsOnCursorMove);
 }
 
 // --------------------------------
@@ -77,8 +79,7 @@ function runExtension(isModal: boolean) {
     let currentTagSpan: number[] = [];
     let tagSetID: number[] = [];
 
-    let cursorIsAfterTagStart: Boolean = true; // Set to false when cursor is before the start of the tag during parsing
-    let cursorIsAfterTagEnd: Boolean = true; // Set to false when cursor is before the end of the tag during parsing
+    let tagIsAfterCursor: Boolean = true; // Set to false when the cursor position comes before a tag during parsing
     let tagCounter = 0; // This will be used to assign a unique ID to each ifversion tag
     let nestingLevel = -1; // Increment each time we encounter an ifversion tag, decrement at each endif tag
 
@@ -109,15 +110,12 @@ function runExtension(isModal: boolean) {
         const closingBracketPos = match.index + match[0].length;
         const currentTagEnd = activeEditor.document.positionAt(closingBracketPos);
 
-        // If the cursor position is at or before the start of this tag, set cursorIsAfterTagStart to false.
+        // If the cursor position is at or before the start of this tag, set tagIsAfterCursor to false.
         // Note: currentTagStart.translate({ characterDelta: 1 }) adds +1 to the character position.
         // We need to do this because we want to trigger `false` if the cursor is at the start of the tag
         // (i.e. the cursor is on the opening bracket rather than inside it).
-        if (cursorIsAfterTagStart && cursorPosition.isBefore(currentTagStart.translate({ characterDelta: 1 }))) {
-            cursorIsAfterTagStart = false;
-        }
-        if (cursorIsAfterTagEnd && cursorPosition.isBefore(currentTagEnd)) {
-            cursorIsAfterTagEnd = false;
+        if (tagIsAfterCursor && cursorPosition.isBefore(currentTagStart.translate({ characterDelta: 1 }))) {
+            tagIsAfterCursor = false;
         }
 
         // Process each type of tag.
@@ -129,7 +127,7 @@ function runExtension(isModal: boolean) {
 
             tagSetID[nestingLevel] = tagCounter; // Set the tagSetID for this ifversion tag
 
-            if (cursorIsAfterTagStart) {
+            if (tagIsAfterCursor) {
                 currentTagSpan[nestingLevel] = tagCounter; // The cursor may be within this tag
                 if (nestingLevel >0) {
                     versionDescription[nestingLevel] = "AND " + match[2];
@@ -141,7 +139,7 @@ function runExtension(isModal: boolean) {
                 }
             }
         }
-        else if (match[1] === "elsif" && cursorIsAfterTagStart) {
+        else if (match[1] === "elsif" && tagIsAfterCursor) {
             currentTagSpan[nestingLevel] = tagCounter; // The cursor may be within this tag
             if (nestingLevel >0) {
                 versionDescription[nestingLevel] = "AND ";
@@ -149,14 +147,14 @@ function runExtension(isModal: boolean) {
             versionDescription[nestingLevel] += match[2];
             elsedVersions[nestingLevel] += "AND NOT " + match[2];
         }
-        else if (match[1] === "else" && cursorIsAfterTagStart) {
+        else if (match[1] === "else" && tagIsAfterCursor) {
             currentTagSpan[nestingLevel] = tagCounter; // The cursor may be within this tag
             if (nestingLevel >0) {
                 versionDescription[nestingLevel] = "AND ";
             }
             versionDescription[nestingLevel] = elsedVersions[nestingLevel];
         }
-        else if (match[1] === "endif" && cursorIsAfterTagEnd) {
+        else if (match[1] === "endif" && tagIsAfterCursor) {
             elsedVersions.pop();      // Remove the list of excluded versions for the tag set we're leaving
             versionDescription.pop(); // Remove the version description for the tag set
             currentTagSpan.pop();     // Remove the tag span for the tag set
@@ -192,44 +190,16 @@ function runExtension(isModal: boolean) {
 // highlightVersionTags() function
 // --------------------------------
 function highlightVersionTags(
-        activeEditor: vscode.TextEditor | undefined,
-        versionTags: VersionTag[],
-        currentTagSpan: number[]
-    ){
-
-    // Get the configuration for 'version-identifier' from the user's settings.json file
-    // (or from the default settings, defined in the extension's in package.json file):
-    let config = vscode.workspace.getConfiguration('version-identifier');
-
-    // From the configuration, get the 'colorPairs' setting,
-    // mapping it to an array of objects with backgroundColor and color properties.
-    // We'll use this to highlight the tags of each tag set at a particular version nesting level.
-    let colorPairs = config.get<{backgroundColor: string, color: string}[]>('colorPairs', []);
-
-    let colorIndex = 0; // This will be used to cycle through the color pairs
-
+    activeEditor: vscode.TextEditor | undefined,
+    versionTags: VersionTag[],
+    currentTagSpan: number[]
+) {
     // Iterate through the currentTagSpan array:
-    currentTagSpan.forEach(tagID => {
-        // For each tag span in currentTagSpan array (i.e. the tag span that lets us work out
-        // which tag set we're going to highlight at a particular nesting level),
-        // fetch one pair of colors from the colorPairs array declared at the top of this file.
-        // The modulo operator (%) ensures that if colorIndex is greater than the number of color pairs,
-        // the colors will cycle through the defined pairs.
-        let colors = colorPairs[colorIndex % colorPairs.length];
-
-        // Create a new decoration definition for this color pair
-        let decorationDefinition = vscode.window.createTextEditorDecorationType({
-            backgroundColor: colors.backgroundColor,
-            color: colors.color
-        });
-        decorationDefinitionsArray.push(decorationDefinition);
-
-        // This array will hold the ranges of all the tags in the current tag set:
-        let decorationsArray: vscode.DecorationOptions[] = [];
+    for (let elementNumber = currentTagSpan.length - 1; elementNumber >= 0; elementNumber--) {
 
         // Use the tag span ID to get the tag object for that tag
         // from the versionTags array:
-        let tagObject = versionTags.find(tag => tag?.tagID === tagID);
+        let tagObject = versionTags.find(tag => tag?.tagID === currentTagSpan[elementNumber]);
 
         // From this tag object, get its tag set ID:
         let currentTagSetID = tagObject?.tagSet;
@@ -240,24 +210,32 @@ function highlightVersionTags(
         let matchingTags = versionTags.filter(tag => tag.tagSet === currentTagSetID);
 
         matchingTags.forEach(tag => {
+            // For each tag in the tag set,
+            // fetch one pair of colors from the colorPairs array declared at the top of this file.
+            // The modulo operator (%) ensures that if elementNumber is greater than the number of color pairs,
+            // the colors will cycle through the defined pairs.
+            //let colors = colorPairs[elementNumber % colorPairs.length];
+            let colors = colorPairs[colorIndex % colorPairs.length];
+
+            // Create a new decoration for this color pair
+            let decoration = vscode.window.createTextEditorDecorationType({
+                backgroundColor: colors.backgroundColor,
+                color: colors.color
+            });
+
             // Create a vscode.Range object for the tag:
             const range = new vscode.Range(
                 tag.positionVersionTagStart,
                 tag.positionVersionTagEnd
             );
 
-            // Push the range into the decorationsArray array:
-            decorationsArray.push({ range: range });
-
+            // Apply the decoration to this range
+            if (activeEditor) {
+                activeEditor.setDecorations(decoration, [range]);
+            }
         });
-
-        // Apply the decoration to the ranges we've collected for this set of tags.
-        // These will all be highlighted in the same color.
-        if (activeEditor) {
-            activeEditor.setDecorations(decorationDefinition, decorationsArray);
-        }
         colorIndex++; // Increment the color index so that the next tag set will use a different color pair
-    });
+    }
 } // End of highlightVersionTags() function
 
 // --------------------------------
@@ -295,9 +273,6 @@ function displayVersionMessage(isModal: Boolean, cursorPosition: vscode.Position
 // --------------------------------
 // deactivate() function
 // --------------------------------
-// This function is called when the extension is deactivated.
-// If you deactivate the extension we want to remove any decorations that have been applied.
 export function deactivate() {
-    decorationDefinitionsArray.forEach(decoration => decoration.dispose());
-    decorationDefinitionsArray = []; // Clear the array
+   decoration.dispose();
 }

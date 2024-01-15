@@ -37,7 +37,7 @@ A tag set:
 
 ### Tag spans
 
-A tag span is the text to which a tag applies. In an un-nested tag set, a tag span begins after the `}` of a version tag and ends with the `}` of the next tag. The `endif` tag has no tag span. For example:
+A tag span consists of the tag plus the text to which that tag applies. In an un-nested tag set, with the exception of an `endif` tag, a tag span begins with the `{` of the tag and ends with the `{` of the next tag. The `endif` tag has no related text, so it ends with the `}` of the tag. For example:
 
 ```
 This text does not belong to a tag span, {% ifversion some-version-name %}this is the ifversion tag span,
@@ -186,49 +186,39 @@ Having parsed the contents of the Markdown file, we now have the `currentTagSpan
 
 #### Highlighting the relevant version tags
 
-To highlight the relevant tags in the editor we iterate backwards through the `currentTagSpan` array, starting with the last element in the array:
+Highlighting is done in the `highlightVersionTags()` function.
+
+First we define some colors to be used to highlight the tag sets. We'll highlight each set of tags in a different color, so we define and array of object, with each object having a pair of properties: the background color of the highlighting, and the color of the text. It's rare to have more than one level of nesting, so we'll usually only need two pairs of colors, but we define three just in case there is some double-nesting anywhere.
 
 ```
-for (let elementNumber = currentTagSpan.length - 1; elementNumber >= 0; elementNumber--) {
-    ... do stuff with currentTagSpan[elementNumber] ...
-}
+const colorPairs = [
+    { backgroundColor: 'darkred', color: 'white' },
+    { backgroundColor: 'darkblue', color: 'yellow' },
+    { backgroundColor: 'green', color: 'black' }
+];
 ```
 
-For each tag span element in the array we:
-- Look up the tag span ID (`currentTagSpan[elementNumber]`) in the `versionTags` array.
-- Get the tag set ID from the `tagSet` property of the element we find in the `versionTags` array, and assign it to `currentTagSetID`.
-- Find all the tags in the `versionTags` array that have the same tag set ID, and for each of these:
-  - Get the start and end positions of the tag.
-  - Add the start and end positions to an array of text ranges. We'll highlight these ranges in the editor.
+The tag set the cursor is directly within will use the first color pair. If this tag set is nested then the parent tag set will be highlighted using the second color pair, and so on. If there are additional levels of nesting in the Markdown we'll cycle back through the array of colors again.
 
-We do the last three steps as follows:
+We then iterate backwards through the `currentTagSpan` array, starting with the last element in the array. This array contains one element for each level of nesting, starting with the most nested tag set the cursor is within, and ending with the un-nested ancestor tag span. So, in most cases, where versioning is un-nested, there will only be one element in this array. The value of each element in the `currentTagSpan` array is a tag ID.
 
-```
-versionTags.filter(tag => tag.tagID === currentTagSetID).forEach(tag => {
-    const range = new vscode.Range(
-        tag.positionVersionTagStart,
-        tag.positionVersionTagEnd
-    );
-    ranges.push(range);
-});
-```
+Now, within this iteration of the nesting level loop, we then use `vscode.window.createTextEditorDecorationType` to define the decoration we want to use for the tag set that this tag span belongs to. The definition consists of a pair of colors, which we pluck from the `colorPairs` array.
 
-We can now use the `ranges` array to highlight the relevant tags.
+We add this definition to an array of decoration types that we declared at the start of the script. We'll use this later when we want to dispose of (i.e. remove) this type of decoration. We put it in an array so that we can dispose of all of the decoration types (i.e. the color pair for each nesting level) in a single operation.
 
-```
-TODO: THIS CODE WON'T WORK BECAUSE, ON EACH LOOP, THE DECORATIONS APPLIED FOR THE PREVIOUS LEVEL WILL BE REMOVED:
-decoration.dispose(); // Remove any existing decorations.
+Then we create an array of `vscode.DecorationOptions` types. The only options we'll use are the positional range for each decoration (i.e. the start and end position of the tag we want to highlight). We'll fill up this array with details of all of the text ranges we want to highlight with this decoration type (i.e. all the tags that will have the same color highlighting).
 
-// Create a new decoration type for highlighting the current version tags.
-decoration = vscode.window.createTextEditorDecorationType({
-    backgroundColor: highlightBackgroundColor[elementNumber],
-    color:  highlightForegroundColor[elementNumber]
-});
+Still within the loop, for the tag span ID at this nesting level, we:
+- Get, from the `versionTags` array, the tag object for this tag span.
+- Get the ID of the tag set this tag belongs to.
+- Filter the `versionTags` array to get a subset array containing only those tag elements that have the same tag set ID as the one we just identified.
+- For each tag object in this filtered array, get the start and end positions as a vscode.Range, and push this into the decorations array for this nesting level (i.e. the tags with the same color of highlighting).
 
-if (activeEditor) {
-    activeEditor.setDecorations(decoration, ranges);
-}
-```
+Finally, within the nesting level loop, we use `activeEditor.setDecorations` to apply the specified decoration type to all of the ranges in the decorations array.
+
+Then, if there's version nesting, we iterate through the loop again, applying another color to the tags in the parent tag set.
+
+The .......... TODO: MENTION PRESSING ESC OR CHANGING THE CURSOR POSITION TO TRIGGER DISPOSING OF THE DECORATION TYPES. LINK TO REF FOR PACKAGE.JSON BELOW.
 
 For more information about applying decorations to text in VS Code, see https://github.com/microsoft/vscode-extension-samples/blob/main/decorator-sample/USAGE.md.
 
@@ -300,13 +290,16 @@ In this case the `versionDescription` array will contain:
 
 Now the contents of `versioningString` will be: `ghec or ghes > 3.8 \nAND NOT ghes = 3.9 \nAND NOT ghes = 3.10`.
 
+
+
+
 ## Reference
 
 ### Variables and constants in alphabetical order
 
 The following variables and constants are used in the script. Except where marked, these are variables.
 
-- **beforeCursor**: Boolean. This is set to true initially. We set it to false as soon as we get to the cursor position during the parsing phase. This allows us to quickly skip any more checking for the cursor position or assigning values related to the versioning message.
+- **cursorIsAfterTag  **: Boolean. This is set to true initially. We set it to false as soon as we get to a tag that comes after the cursor positiion during the parsing phase. This allows us to stop assigning version text to the `versionDescription` array.
 - **currentTagSetID**: a number. This short-lived variable is just used to store the tag set ID of the tag we're currently processing when working out which tags to highlight.
 - **currentTagSpan[]**: an array of numbers. We store and retrieve values by using `nestingLevel` (i.e., `currentTagSpan[nestingLevel]`). The numbers identify the tag span (and possibly ancestor tag spans) in which the cursor is located. The last element in this array contains the ID of the tag span within which the cursor is directly located. Initially this array is empty, meaning the cursor is not within a tag span. Knowing the current tag span (and any ancestor spans), we can use the tag properties to find out which tag set(s) to highlight.
 - **cursorPosition**: (constant) a vscode.Position (i.e. a line number and the number of character on that line where the cursor currently sits).
@@ -357,7 +350,7 @@ We do the following for every tag we encounter during parsing.
 
   Note: that `currentTagEnd` is actually the character after the closing bracket.
 
-- Check whether the cursor position is after the end position of the tag. If it is we set `beforeCursor` to false.
+- Check whether the cursor position is before the beginning of the tag. If it is we set `cursorIsAfterTag` to false.
 - Create a new element in the `versionTags` array, containing these properties:
   - **tagID**: The unique ID (`tagCounter` number).
   - **tagSet**: The tag set ID (`tagSetID[nestingLevel]` number).
@@ -369,7 +362,7 @@ We do the following for every tag we encounter during parsing.
 When we find an `ifversion` tag we:
 - Increment `nestingLevel`. Initially this is -1, so this becomes 0 for an un-nested tag set and 1 for the first nesting level. This variable needs to survive from one tag processing to the next
 - Assign `tagCounter` to `tagSetID[nestingLevel]`. This is the ID of the tag set that this tag belongs to (always the same as the ifversion ID). This array needs to survive from one tag processing to the next.
-- If `beforeCursor` is true we:
+- If `cursorIsAfterTag` is true we:
   - Assign `tagCounter` to `currentTagSpan[nestingLevel]`. This array needs to survive from one tag processing to the next so that we can determine which tag span the cursor is currently within, and therefore which tags we need to highlight.
   - Get the version from the tag (e.g. "ghes"), using `match[1]` from the regular expression.
   - Assign the version to `versionDescription[nestingLevel]`.
@@ -378,7 +371,7 @@ When we find an `ifversion` tag we:
 #### `elsif`
 
 When we find an `elsif` tag:
-- If `beforeCursor` is true we:
+- If `cursorIsAfterTag` is true we:
   - Assign `tagSetID[nestingLevel]` to `currentTagSpan[nestingLevel]`.
   - Get the version from the tag (e.g. "ghec").
   - Assign the version to `versionDescription[nestingLevel]`.
@@ -388,7 +381,7 @@ Note that we don't assign a value to `tagSetID[nestingLevel]` because this tag d
 #### `else`
 
 When we find an `else` tag:
-- If `beforeCursor` is true we:
+- If `cursorIsAfterTag` is true we:
   - Assign `tagSetID[nestingLevel]` to `currentTagSpan[nestingLevel]`.
   - If `nestingLevel` is >0, we set `versionDescription[nestingLevel]` to " AND ".
   - Set `versionDescription[nestingLevel]` to `versionDescription[nestingLevel] + elsedVersions[nestingLevel]`.
@@ -397,7 +390,7 @@ As with `elsif` we again reuse the unmodified `tagSetID[nestingLevel]` value tha
 #### `endif`
 
 When we find an `endif` tag:
-- If `beforeCursor` is true we:
+- If `cursorIsAfterTag` is true we:
   - Delete the last element in the `currentTagSpan`, `versionDescription` and `elsedVersions` arrays.
   - Decrement `nestingLevel`. At each `endif` we're stepping out of a level of nesting, or out of versioning altogether this is the `endif` for an un-nested tag set (in which case `nestingLevel` returns to -1).
 As with `elsif` we again reuse the unmodified `tagSetID[nestingLevel]` value that we set for the `ifversion` tag.
@@ -447,36 +440,13 @@ while (match = tagRegEx.exec(text)) {
 
 The `while` loop will keep running until the regular expression fails to match anything in the text. Each time the regular expression matches something, it returns an array of strings (`match`). The first element in the array (`match[0]`) is the entire string that matched the regular expression. The second element in the array (`match[1]`) is the first capture group (the tag type - e.g. "ifversion"). The third element (`match[2]`) is the second capture group (the version - e.g. "fpt or ghec").
 
+### The package.json file
+
+This file is located ....... it's used to ...........
+
+
+
 ==================
-
-TODO: TRY USING OUTLINE COLOR AROUND TAG SPANS:
-
-To apply an outline around a range of text in the editor as a VS Code decoration, you can use the setDecorations method of the TextEditor object. Here's how you can do it:
-
-First, define the decoration type:
-
-const decorationType = vscode.window.createTextEditorDecorationType({
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    overviewRulerColor: 'blue',
-    borderColor: 'darkblue',
-    light: {
-        borderColor: 'darkblue'
-    },
-    dark: {
-        borderColor: 'lightblue'
-    }
-});
-
-Then, apply the decoration to a range:
-
-const activeEditor = vscode.window.activeTextEditor;
-if (activeEditor) {
-    const start = new vscode.Position(0, 0); // start position
-    const end = new vscode.Position(0, 10); // end position
-    const decoration = { range: new vscode.Range(start, end), hoverMessage: 'Test Decoration' };
-    activeEditor.setDecorations(decorationType, [decoration]);
-}
 
 ================
 

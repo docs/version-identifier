@@ -1,22 +1,22 @@
 import * as vscode from 'vscode';
 
-// The VersionTag interface defines the structure of the objects that will be used in the versionTags array.
-// Each element of the versionTags array will be an object that describes a single Liquid version tag,
-// and will contain the following properties:
-interface VersionTag {
-    tagID: number;    // The unique ID of the version tag
-    tagSet: number;   // The ID of the tag set to which the tag belongs
-    positionVersionTagStart: vscode.Position; // The start position of the version tag
-    positionVersionTagEnd: vscode.Position;   // The end position of the version tag
-}
-
-// Create an array to store all of the text decorations that we apply to the editor,
+// Create an empty array of type vscode.TextEditorDecorationType.
+// We'll use this to store all of the text decorations that we apply to the editor,
 // so that we can remove them all later in a single operation.
 // We need to declare it here, outside of the activate() function,
 // so that we can it in the deactivate() function
 // at the end of this file.
 let decorationDefinitionsArray: vscode.TextEditorDecorationType[] = [];
 
+// The VersionTag interface defines the structure of the objects that will be used in the versionTags array.
+// Each element of the versionTags array will be an object that describes a single Liquid version tag,
+// and will contain the following properties:
+interface VersionTag {
+  tagID: number;    // The unique ID of the version tag
+  tagSet: number;   // The ID of the tag set to which the tag belongs
+  positionVersionTagStart: vscode.Position; // The start position of the version tag
+  positionVersionTagEnd: vscode.Position;   // The end position of the version tag
+}
 
 // --------------------------------
 // activate() function
@@ -24,19 +24,19 @@ let decorationDefinitionsArray: vscode.TextEditorDecorationType[] = [];
 export function activate(context: vscode.ExtensionContext) {
 
     // Register a command to run the extension, using a modal dialog box for the version message.
-    let disposableModal = vscode.commands.registerCommand('version-identifier.runExtensionModal', () => {
-        runExtension(true);
+    let disposableModal = vscode.commands.registerCommand('extension.runExtensionModal', () => {
+    runExtension(true);
     });
 
     // Register a command to run the extension, using a "toast" popup for the version message.
-    let disposableToast = vscode.commands.registerCommand('version-identifier.runExtensionToast', () => {
-        runExtension(false);
+    let disposableToast = vscode.commands.registerCommand('extension.runExtensionToast', () => {
+    runExtension(false);
     });
 
     // Register a command to remove the decorations.
     // The command is defined in package.json and is bound to the escape key
     let removeDecorationsDisposable = vscode.commands.registerCommand(
-            'version-identifier.removeDecorations', () => {
+            'extension.removeDecorations', () => {
         // Remove all of the decorations that have been applied to the editor:
         decorationDefinitionsArray.forEach(decoration => decoration.dispose());
         decorationDefinitionsArray = []; // Clear the array
@@ -197,25 +197,26 @@ function highlightVersionTags(
         currentTagSpan: number[]
     ){
 
-    // Get the configuration for 'version-identifier' from the user's settings.json file
-    // (or from the default settings, defined in the extension's in package.json file):
-    let config = vscode.workspace.getConfiguration('version-identifier');
-
-    // From the configuration, get the 'colorPairs' setting,
-    // mapping it to an array of objects with backgroundColor and color properties.
-    // We'll use this to highlight the tags of each tag set at a particular version nesting level.
-    let colorPairs = config.get<{backgroundColor: string, color: string}[]>('colorPairs', []);
-
+    // Create an array of objects, each of which contains a pair of colors.
+    // We'll use this to highlight the tags of each tag set at a particular version nesting level
+    // in a different color.
+    const colorPairs = [
+        { backgroundColor: 'darkred', color: 'white' },
+        { backgroundColor: 'darkblue', color: 'yellow' },
+        { backgroundColor: 'green', color: 'black' }
+    ];
     let colorIndex = 0; // This will be used to cycle through the color pairs
 
     // Iterate through the currentTagSpan array:
-    currentTagSpan.forEach(tagID => {
-        // For each tag span in currentTagSpan array (i.e. the tag span that lets us work out
-        // which tag set we're going to highlight at a particular nesting level),
+    for (let elementNumber = currentTagSpan.length - 1; elementNumber >= 0; elementNumber--) {
+        // For each tag span in currentTagSpan (i.e. each tag set we're going to highlight),
         // fetch one pair of colors from the colorPairs array declared at the top of this file.
-        // The modulo operator (%) ensures that if colorIndex is greater than the number of color pairs,
+        // The modulo operator (%) ensures that if elementNumber is greater than the number of color pairs,
         // the colors will cycle through the defined pairs.
         let colors = colorPairs[colorIndex % colorPairs.length];
+
+        // This array will hold the ranges of all the tags in the current tag set:
+        let decorationsArray: vscode.DecorationOptions[] = [];
 
         // Create a new decoration definition for this color pair
         let decorationDefinition = vscode.window.createTextEditorDecorationType({
@@ -224,12 +225,9 @@ function highlightVersionTags(
         });
         decorationDefinitionsArray.push(decorationDefinition);
 
-        // This array will hold the ranges of all the tags in the current tag set:
-        let decorationsArray: vscode.DecorationOptions[] = [];
-
         // Use the tag span ID to get the tag object for that tag
         // from the versionTags array:
-        let tagObject = versionTags.find(tag => tag?.tagID === tagID);
+        let tagObject = versionTags.find(tag => tag?.tagID === currentTagSpan[elementNumber]);
 
         // From this tag object, get its tag set ID:
         let currentTagSetID = tagObject?.tagSet;
@@ -257,7 +255,7 @@ function highlightVersionTags(
             activeEditor.setDecorations(decorationDefinition, decorationsArray);
         }
         colorIndex++; // Increment the color index so that the next tag set will use a different color pair
-    });
+    }
 } // End of highlightVersionTags() function
 
 // --------------------------------

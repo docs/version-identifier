@@ -1,8 +1,12 @@
 {
-  "name": "versioning-identifier",
+  "name": "version-identifier",
   "displayName": "Versioning Identifier extension",
   "description": "This is just for testing a VS Code extension written in TypeScript.",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/docs/version-identifier.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -14,33 +18,68 @@
   "contributes": {
     "commands": [
       {
-        "command": "extension.runExtensionModal",
+        "command": "version-identifier.runExtensionModal",
         "title": "Versioning identification (Modal)"
       },
       {
-        "command": "extension.runExtensionToast",
+        "command": "version-identifier.runExtensionToast",
         "title": "Versioning identification (Toast)"
       }
     ],
     "keybindings": [
       {
-        "command": "extension.runExtensionToast",
+        "command": "version-identifier.runExtensionToast",
         "key": "ctrl+cmd+v",
         "mac": "ctrl+cmd+v",
         "when": "editorTextFocus"
       },
       {
-        "command": "extension.runExtensionModal",
+        "command": "version-identifier.runExtensionModal",
         "key": "shift+ctrl+cmd+v",
         "mac": "shift+ctrl+cmd+v",
         "when": "editorTextFocus"
       },
       {
         "key": "escape",
-        "command": "extension.removeDecorations",
+        "command": "version-identifier.removeDecorations",
         "when": "editorTextFocus"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Versioning Extension Configuration",
+      "properties": {
+        "version-identifier.colorPairs": {
+          "type": "array",
+          "default": [
+            {
+              "backgroundColor": "darkred",
+              "color": "white"
+            },
+            {
+              "backgroundColor": "darkblue",
+              "color": "yellow"
+            },
+            {
+              "backgroundColor": "green",
+              "color": "black"
+            }
+          ],
+          "description": "Color pairs",
+          "items": {
+            "type": "object",
+            "properties": {
+              "backgroundColor": {
+                "type": "string"
+              },
+              "color": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -68,6 +107,5 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "vscode": "^1.1.37"
   }
 }
