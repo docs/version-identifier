@@ -22,15 +22,17 @@ To use the extension, either:
   - For the modal popup, press <kbd>Shift</kbd>+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>v</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>control</kbd>+<kbd>command</kbd>+<kbd>v</kbd> (Mac)
 - Go to the Command Palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>p</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>command</kbd>+<kbd>p</kbd> (Mac)), type `version` and select either **Versioning identification (Toast)** or **Versioning identification (Modal)**.
 
+The extension highlights each set of tags that affects the current cursor position in a different color. In this example, the cursor is in the word "series" on line 112. The text at that point is within a set of tags that's nested within another tag set, that's also nested. So three sets of tags are highlighted. The "toast" popup describes the versioning.
+
 ![Screenshot of the extension in action](images/example-output.png)
 
 ## Extension Settings
 
-You can change the settings for the tag highlighting and the keyboard shortcuts to run the extension.
+You can change the settings for the tag highlighting and the keyboard shortcuts you use to run the extension.
 
 ### Tag highlighting colors
 
-The extension uses an array of color pairs (background color and the color of the text) to highlight the version tags. You can change the colors by editing the `versionIdentifier.colors` setting in your `settings.json` file.
+The extension uses an array of color pairs (that is, the background color and the color of the text) to highlight the version tags. You can change the colors by editing the `versionIdentifier.colors` setting in your `settings.json` file.
 
 To change the highlighing colors:
 
