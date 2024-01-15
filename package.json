@@ -1,6 +1,6 @@
 {
   "name": "version-identifier",
-  "displayName": "Versioning Identifier extension",
+  "displayName": "Versioning Identifier",
   "description": "Highlight the Liquid versioning that applies at any point within a Markdown file.",
   "icon": "images/versioning-identifier-logo-128px.png",
   "version": "1.0.0",
