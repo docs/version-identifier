@@ -2,11 +2,11 @@
 
 This extension for VS Code helps you to identify Liquid-syntax tags used to apply versioning in the Markdown files for GitHub documentation.
 
-An example of versioning in Markdown is:
+Here's an example of versioning in GitHub Markdown:
 
 `This text is not versioned{% ifversion ghes > 3.10 %}, but this only appears in the documentation for GitHub Enterprise Server 3.11 or higher{% endif %}.`
 
-Where there is lots of versioning in a Markdown file, especially where there is versioning nested within other versioned blocks, it can be difficult to be absolutely sure, just by looking at the Markdown, which version of the docs a particular bit of text will, or will not, appear in. And if you want to remove some versioning it can be hard to know which tags you need to delete. This extension makes things a lot easier.
+Where there's lots of versioning in a Markdown file, especially where versioning is nested within other versioned blocks, it can be difficult to be absolutely sure, just by looking at the Markdown, which version of the docs a particular bit of text will, or will not, appear in. And if you want to remove some versioning it can be hard to know which tags you need to delete. This extension makes things a lot easier.
 
 ## Features
 
