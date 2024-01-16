@@ -556,4 +556,6 @@ The `while` loop will keep running until the regular expression fails to match a
 
 ### The package.json file
 
-This file is located ....... it's used to ...........
+The [package.json](https://github.com/docs/version-identifier/blob/main/package.json) file contains metadata about the extension, and other information that VS Code needs to run the extension. In this project we use this file to define the commands that can be used to run the extension, and the keybindings for those commands. We also specify the highlighting color pairs here. These configurations are added to the user's `settings.json` file where the user can modify them as they wish.
+
+The file is used by the VS Code Marketplace for displaying various information there about the extension.
