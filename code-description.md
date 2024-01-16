@@ -41,7 +41,7 @@ A tag set:
 
 A tag span consists of a tag plus the text to which that tag applies. In an un-nested tag set, with the exception of an `endif` tag, a tag span begins with the `{` of the tag and ends with the `{` of the next tag. The `endif` tag has no related text, so it ends with the `}` of the tag itself. For example:
 
-```
+```markdown
 This text does not belong to a tag span, {% ifversion some-version-name %}this is the ifversion tag span,
 {% elsif alternative-version %}this is the tag span for an elsif clause, {% else %}this is the tag span for
 an else clause, {% endif %}and this does not belong to a tag span.
@@ -55,7 +55,7 @@ If you put a tag set within a tag span of another tag set, then the inner tag se
 
 Here's an example of nested versioning:
 
-```
+```markdown
 {% ifversion baselevel %}
 
 This text is versioned for "baselevel".
@@ -84,7 +84,7 @@ There are 2 main phases:
 
 First we find the cursor position within the Markdown file and assign this to the constant `cursorPosition`:
 
-```
+```typescript
 const cursorPosition = activeEditor.selection.active;
 ```
 
@@ -123,7 +123,7 @@ When we finish parsing the file, we can work backwards through the `currentTagSp
 
 For example, let's say we have the following at the beginning of a Markdown file:
 
-```
+```markdown
 This text is unversioned, {% ifversion ghes %}this is versioned for ghes{% endif %} and this is unversioned.
 My favorite version is {% ifversion ghec %}GHEC{% elsif fpt %}Free/Pro/Team{% else %}NOT GHES and NOT
 Free/Pro/Team{% endif %}.
@@ -200,7 +200,7 @@ Highlighting is done in the `highlightVersionTags()` function.
 
 First we create and populate the `colorPairs` array which contains the colors to be used to highlight the tag sets. We use an array because we're going to highlight each set of tags, at different nesting levels, in a different color. We get the contents of this array from the `settings.json` file. The array values are written to the `settings.json` file, if they don't already exist, when the extension is first installed. The user can then edit the values in the `settings.json` file to change the colors used for highlighting. This is achieved by specifying the array in the extension's `package.json` file, as follows:
 
-```
+```typescript
 "configuration": {
   "type": "object",
   "title": "Versioning Extension Configuration",
@@ -260,8 +260,6 @@ Finally, within the nesting level loop, we use `activeEditor.setDecorations` to 
 
 Then, if there's version nesting, we iterate through the loop again, applying another color to the tags in the parent tag set.
 
-The .......... TODO: MENTION PRESSING ESC OR CHANGING THE CURSOR POSITION TO TRIGGER DISPOSING OF THE DECORATION TYPES. LINK TO REF FOR PACKAGE.JSON BELOW.
-
 For more information about applying decorations to text in VS Code, see https://github.com/microsoft/vscode-extension-samples/blob/main/decorator-sample/USAGE.md.
 
 #### Removing the highlighting
@@ -270,7 +268,7 @@ When the user presses the Escape key, or moves the cursor, we want to remove the
 
 The code to do this is in the extension's `activate` function, near the top of the TypeScript file:
 
-```
+```typescript
 // Register a command to remove the decorations.
 // The command is defined in package.json and is bound to the escape key
 let removeDecorationsDisposable = vscode.commands.registerCommand(
@@ -292,7 +290,7 @@ Any time the Escape key is pressed, or the cursor is moved, we iterate through t
 
 We link the Escape keypress to the `version-identifier.removeDecorations` command in the `keybinding` section of the extension's `package.json` file:
 
-```
+```json
 "keybindings": [
   {
     "command": "version-identifier.runExtensionToast",
@@ -322,7 +320,7 @@ The extension allows you to display the versioning message either as a "toast" p
 
 The message is built up from the `versionDescription` array. Included in the message are details of the cursor position, which we derive from the `cursorPosition` constant. And we create the variable `positionString` to hold the part of the message that describes the cursor position:
 
-```
+```typescript
 const lineNum = cursorPosition.line + 1;
 const charNum = cursorPosition.character + 1;
 let positionString = `at the cursor position (line ${lineNum}, character ${charNum})`;
@@ -336,7 +334,7 @@ If the `versionDescription` array is empty then there's no versioning at the cur
 
 If `versionDescription` array is not empty we iterate through the array building up the message in the string variable `versioningString`. Typically versioning is un-nested so there's only one element and the message is simple. The following untypical example contains two levels of nesting. Let's say the cursor is within the text "CodingStars" in the twice-nested `ifversion` tag span:
 
-```
+```markdown
 {% ifversion some-feature-based-versioning %}
 ... some text here ...
 
@@ -366,7 +364,7 @@ Let's take another example, this time with just one level of versioning but wher
 
 In the following Markdown, let's say the cursor is within the text "GitHub Code Scanning" in the `else` tag span:
 
-```
+```markdown
 {% ifversion ghec or ghes > 3.8 %}
 
 ... within the product called {%ifversion ghes = 3.9 %}CodingStars{% elsif ghes = 3.10 %}LGTM{% else %}GitHub Code
@@ -431,7 +429,7 @@ We do the following for every tag we encounter during parsing.
 - Increment `tagCounter`, to use as a unique ID for this tag. This variable needs to survive from one tag processing to the next.
 - Get the start and end positions of the tag (i.e. the position of `{` and `}`) and assign them to `positionVersionTagStart` and `positionVersionTagEnd`. We do this using the `match` array that contains the tag text (e.g. `{% ifversion ghes %}`) that we found using the regular expression. We do this as follows:
 
-  ```
+  ```typescript
     // match.index is the number of the first character of the match
     // within the entire searched string (i.e. the entire Markdown file)
     const openingBracketPos = match.index;
@@ -495,7 +493,7 @@ Note: the cursor can never be within an `endif` tag span, because `endif` tags h
 
 We use the following regular expression to find version tags in the Markdown file:
 
-```
+```typescript
 const tagRegEx = /\{%-?\s*(ifversion|elsif|else|endif)\s+([^%]*)%\}/g;
 ```
 
@@ -525,7 +523,7 @@ This regular expression has two capture groups:
 
 We use the regular expression like this:
 
-```
+```typescript
 let match: RegExpExecArray | null;
 while (match = tagRegEx.exec(text)) {
   ...
@@ -537,82 +535,3 @@ The `while` loop will keep running until the regular expression fails to match a
 ### The package.json file
 
 This file is located ....... it's used to ...........
-
-
-
-==================
-
-================
-
-TODO: FIGURE OUT HOW TO ALLOW USERS TO HAVE A CUSTOM CONFIG FOR:
-
-- The color of the highlight for each nesting level.
-- The key bindings for the extension.
-
-TODO: IF I CHANGE THIS, ADD MORE DOCUMENTATION HERE ABOUT THE PACKAGE.JSON FILE.
-
-
-
--------
-From Copilot:
-
-You can allow users to set their own custom values for the backgroundColor and color properties by using the vscode.workspace.getConfiguration method to read configuration settings from the user's settings file.
-
-First, you need to define these settings in the contributes.configuration section of your extension's package.json file:
-
-```
-"contributes": {
-    "configuration": {
-        "title": "My Extension",
-        "properties": {
-            "myExtension.decoration.backgroundColor": {
-                "type": "string",
-                "default": "red",
-                "description": "Background color for decoration."
-            },
-            "myExtension.decoration.color": {
-                "type": "string",
-                "default": "white",
-                "description": "Text color for decoration."
-            }
-        }
-    }
-}
-```
-
-Then, in your extension.ts file, you can read these settings and use them when creating the decoration:
-
-```
-let config = vscode.workspace.getConfiguration('myExtension.decoration');
-let backgroundColor = config.get('backgroundColor', 'red');
-let color = config.get('color', 'white');
-
-let decoration = vscode.window.createTextEditorDecorationType({
-    backgroundColor: backgroundColor,
-    color: color
-});
-```
-
-In this code, vscode.workspace.getConfiguration('myExtension.decoration') gets the configuration for your extension. The get method reads a setting, and the second parameter to get is the default value to use if the setting is not found.
-
-Users can configure custom values for decoration.backgroundColor and decoration.color in their user or workspace settings in Visual Studio Code.
-
-Here are the steps:
-
-1. Open the settings: Use the shortcut Ctrl+, on Windows/Linux or Cmd+, on macOS, or go to File > Preferences > Settings.
-
-2. In the search bar at the top, type myExtension.decoration to find the settings for your extension.
-
-3. You should see the settings myExtension.decoration.backgroundColor and myExtension.decoration.color. Click on Edit in settings.json which appears when you hover over the setting.
-
-4. In the settings.json file, you can set the values like this:
-
-```
-{
-    "myExtension.decoration.backgroundColor": "#ff0000",
-    "myExtension.decoration.color": "#ffffff"
-}
-```
-
-Save the settings.json file. The new settings will take effect immediately.
-The values should be valid CSS color values. They can be keywords (like "red" or "white"), hexadecimal color codes (like "#ff0000" or "#ffffff"), RGB values (like "rgb(255, 0, 0)" or "rgb(255, 255, 255)"), or any other valid CSS color value.
