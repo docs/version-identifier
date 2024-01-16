@@ -27,7 +27,9 @@ The following key terms are used to explain how the extension was coded.
 
 ### Tag sets
 
-When you version some text within Markdown, you do so using a set of Liquid tags, such as `{% ifversion some-version-name %}`, `{% elsif alternative-version %}`, `{% else %}`, `{% endif %}`.
+You can version portions of text within a Markdown file used to create the documentation at [docs.github.com](https://docs.github.com). The versioned text will only appear in some versions of the documentation. For example, only in the documentation for the Free, Professional, and Team plans (`fpt`), only in the documentation for GitHub Enterprise Cloud (`ghec`), only for GitHub Enterprise Server (`ghes`), or only in specified releases of GHES (`ghes >3.10`, `ghes = 3.11`, and so on).
+
+To version text you use a set of Liquid tags, such as `{% ifversion some-version-name %}`, `{% elsif alternative-version %}`, `{% else %}`, `{% endif %}`.
 
 A tag set:
 - Always starts with an `ifversion` tag.
@@ -37,7 +39,7 @@ A tag set:
 
 ### Tag spans
 
-A tag span consists of the tag plus the text to which that tag applies. In an un-nested tag set, with the exception of an `endif` tag, a tag span begins with the `{` of the tag and ends with the `{` of the next tag. The `endif` tag has no related text, so it ends with the `}` of the tag. For example:
+A tag span consists of a tag plus the text to which that tag applies. In an un-nested tag set, with the exception of an `endif` tag, a tag span begins with the `{` of the tag and ends with the `{` of the next tag. The `endif` tag has no related text, so it ends with the `}` of the tag itself. For example:
 
 ```
 This text does not belong to a tag span, {% ifversion some-version-name %}this is the ifversion tag span,
@@ -45,15 +47,13 @@ This text does not belong to a tag span, {% ifversion some-version-name %}this i
 an else clause, {% endif %}and this does not belong to a tag span.
 ```
 
-If a tag span contains within it a nested tag set, then the tag span will be interrupted by the nested tag set and will continue after the end of the nested tag set.
-
 The cursor is always within 0 or 1 tag span. By identifying which tag span the cursor is currently within, we can determine the versioning for that text. If the cursor is not within a tag span then the text is unversioned.
-
-TODO ---- WHAT HAPPENS WHEN THE CURSOR IS NOT WITHIN THE MARKDOWN FILE. CAN YOU RUN AN EXTENSION WITHOUT THE CURSOR IN A FILE? DO I NEED TO CHECK THAT A) THE CURRENT FILE IS A MARKDOWN FILE AND B) THERE'S A CURSOR POSITION?
 
 ### Version nesting
 
-In most places, versioning is not nested, so only one version tag determines the versioning for the text at the cursor position. However, one tag set may be nested within another. For example,
+If you put a tag set within a tag span of another tag set, then the inner tag set is said to be nested within the outer tag set. Most versioning in GitHub's documentation is not nested. However, nesting is not uncommon and it's in files that use nesting that this extension is most useful.
+
+Here's an example of nested versioning:
 
 ```
 {% ifversion baselevel %}
@@ -71,6 +71,8 @@ Now we're back to "baselevel" versioning again.
 
 {% endif %}
 ```
+
+Text at any point in the file can be within 0 or more nested tag sets. By identifying the tag span that the cursor is within, and checking whether the tag set for that span is nested in a parent tag span, on so on back until we find the outermost tag span, we can determine the versioning for that text, and we can also determine which tag sets to highlight at each level of nesting.
 
 ## How the code works
 
@@ -97,15 +99,15 @@ At the end of the parsing phase we will have:
 
 While stepping through the file, one tag at a time, we're building various arrays:
 
-a) An array called `versionTags` that contains details of all the version tags in the file. Each element of this array is an object representing one tag. The properties of this object describe features of the tag: its unique ID, another ID that identifies the tag set the tag belongs to, and the start and end positions of the tag it the VS Code editor.
+a) An array called `versionTags` that contains details of all the version tags in the file. Each element of this array is an object representing one tag. The properties of this object describe features of the tag: its unique ID, another ID that identifies the tag set the tag belongs to, and the start and end positions of the tag in the VS Code editor.
 
-b) A `versionDescription` array that will contain the description of the versioning at each level of nesting (i.e. `versionDescription[0]` contains the versioning description for un-nested versioning, `versionDescription[1]` contains the versioning description for the first level of nested versioning, and so on). Generally the array will only have `versionDescription[0]`. The combined elements in this array provides the message we'll display to users. As we parse through the file we'll modify this array as we encounter `ifversion`, `elsif`, `else`, and `endif` tags, until we reach the cursor position. At the end of parsing, this array will contain the versioning description for the cursor position.
+b) A `versionDescription` array that will contain the description of the versioning at each level of nesting (i.e. `versionDescription[0]` contains the versioning description for un-nested versioning, `versionDescription[1]` contains the versioning description for the first level of nested versioning, and so on). Generally the array will only have `versionDescription[0]`. The combined elements in this array provides the message we'll display to users. As we parse through the file we'll modify this array as we encounter `ifversion`, `elsif`, `else`, and `endif` tags, until we reach the cursor position. At that point we'll stop modifying the array so that, at the end of parsing, the array will contain the versioning description for the cursor position.
 
 c) An `elsedVersions` array containing a negated set of versions for the current tag set - for example, "NOT ghes \nAND NOT ghec". We use this if we come to an `else` tag.
 
-d) The `tagSetID` array which records the tag set that the tag we're currently processing belongs to. We need to use an array rather than just a single number, so that when we leave a nested tag set, at an `endif` tag, we know which tag set to step back into. We'll assign the number in `tagSetID[nestingLevel]` to the `tagSet` property of the tag we're currently processing.
+d) The `tagSetID` array. The last element in this array records the ID of the tag set for the version tag we're currently processing. We need to use an array rather than just a single number, so that when we leave a nested tag set, at an `endif` tag, we know which tag set to step back into. We'll assign the number in `tagSetID[nestingLevel]` to the `tagSet` property of the tag we're currently processing. We continue modifying the contents of this array throughout the parsing phase, irrespective of the cursor position.
 
-e) The `currentTagSpan` array that will allow us to work out which tags to highlight in the editor. Each `currentTagSpan[nestingLevel]` element of this array contains the ID of the tag span that affects the text at the cursor position. So the final element in the array always tells us which tag span the cursor is currently directly within. If there are two elements in the array then the cursor is within a nested tag set, with `currentTagSpan[1]` identifing the tag span for the cursor position, and `currentTagSpan[0]` identifing the tag span within which the nested tag set is located. If there's only one element in the array then the cursor is within an un-nested tag set. If there are no elements in the array then there's no versioning at the cursor position.
+e) The `currentTagSpan` array that will allow us to work out which tags to highlight in the editor. Each `currentTagSpan[nestingLevel]` element of this array contains the ID of the tag span that affects the text at the cursor position. Note that, unlike the `tagSetID` which we use when processing every tag in the file, the `currentTagSpan` array is only for recording the span, or spans, that affect the text at the cursor position. When we reach the cursor position during parsing, we stop modifying this array. So, at the end of parsing, the final element in the array tells us which tag span the cursor is currently directly within. If there are two elements in the array then the cursor is within a nested tag set, with `currentTagSpan[1]` identifing the tag span for the cursor position, and `currentTagSpan[0]` identifing the tag span within which the nested tag set is located. If there's only one element in the array then the cursor is within an un-nested tag set. If there are no elements in the array then there's no versioning at the cursor position.
 
 Knowing the containing tag span at each level allows us to determine which tag set(s) to highlight for the cursor position. This is possible because each tag belongs to a tag set and we store the ID of the tag set in the `tagSet` property of each tag object.
 
@@ -127,34 +129,42 @@ My favorite version is {% ifversion ghec %}GHEC{% elsif fpt %}Free/Pro/Team{% el
 Free/Pro/Team{% endif %}.
 ```
 
-At the beginning of this text, at the start of the file, the `tagSetID`, `versionDescription` and `currentTagSpan` arrays are all empty: we haven't found any versioning yet. We then process the first tag: `ifversion`. We:
+At the beginning of this text, at the start of the file, the `tagSetID`, `versionDescription` and `currentTagSpan` arrays are all empty: we haven't found any versioning yet. We start processing the first version tag. For each tag we encounter we:
 - Increment the tag counter to create a unique ID for the tag. The ID is 1 for the first tag in the file.
+- Work out the start and end positions of the tag (i.e. the position of `{` and `}`).
+- Detect whether we've reached or gone past the cursor position.
+
+The first tag is an `ifversion`. For each `ifversion` tag we encounter we:
 - Increment `nestingLevel` from -1 to 0 (indicating an un-nested tag set).
 - Assign the tag counter value to `tagSetID[nestingLevel]` to record the tag set for this tag.
-- Work out the start and end positions of the tag (i.e. the position of `{` and `}`).
+
+If the cursor position is before the end of this, the first tag in the file, then the text at that point is unversioned. If we haven't yet reached the cursor position, we:
+- Assign the tag counter value to `currentTagSpan[nestingLevel]` to store the ID of the tag span we're currently processing. If the cursor is within this tag span, this value will remain in this array element at the end of parsing, telling us which tag span(s) affect the text at the cursor position.
+- Collect the version details (e.g. "ghes") to use for the version description message. If the cursor is within this tag span then we'll use this string as one of the versions applied to the text. If the cursor is within an `else` tag span of the same tag set, we'll negate this version ("NOT ghes") in the message we display.
 
 We can now call a function to add a new element in the `versionTags` array. The object that makes up this new element contains:
-- The unique ID of the tag (1).
-- The tag set number that identifies the tag set the tag belongs to (1).
+- The unique ID of the tag (which, for this first tag, is 1).
+- The tag set number that identifies the tag set the tag belongs to (also 1).
 - The start position of the tag.
 - The end position of the tag.
 
-If the cursor position is before the end of this, the first tag in the file, then the text at that point is unversioned. If the cursor position is after the `}` of this tag, we assign the version "ghes" to `versionDescription[0]`, and we assign the ID of the tag to `currentTagSpan[0]`.
-
 Then we process the next tag (`endif`), going through the same process and creating a `versionTags` element for this tag, which has the ID 2 and the tag set number 1 (i.e. it's in the tag set of the `ifversion` tag with ID 1). If the cursor position is before the end of this tag (i.e. it's somewhere in "this is versioned for ghes"), then the versioning at the cursor point is "ghes". We can now stop assigning anything to the `currentTagSpan` and `versionDescription` arrays as we proceed through the rest of the file, because we now have enough information to work out which tag set(s) to highlight for the cursor position, and none of the version tags after this point will affect the text at the cursor position. When the parsing phase completes, with the cursor within the first `ifversion` tag span in the Markdown shown above, `versionDescription` will contain one element, with the value "ghes", and `currentTagSpan` will contain one element with the value 1.
 
-If the cursor position is after the end of the `endif` tag, we do three things:
-- We use `versionDescription.pop()` to delete the last element of the `versionDescription` array (in this case `versionDescription[0]` which contains "ghes"), because this description no longer applies to the text at the cursor position. If the `endif` tag had been part of a nested tag set at this point we'd delete `versionDescription[1]` which would return us to the un-nested versioning: "ghes". By deleting `versionDescription[0]` we have an empty `versionDescription` array again, which indicates we're back in unversioned text again, with no versioning message to display.
-- We delete the last element of the `currentTagSpan` array (in this case `currentTagSpan[0]` which contains the ID of the tag previous to `endif`, in this case the `ifversion` tag). If the `endif` tag had been part of a nested tag set at this point we'd delete `currentTagSpan[1]` which would leave `currentTagSpan` containing the ID of the parent span in which the nested tag set we've just left was contained. By deleting `currentTagSpan[0]` we have an empty `currentTagSpan` array again, which indicates we're back in unversioned text again, with no tags to highlight.
-- Decrement `nestingLevel` from 0 back to -1, indicating that we're no longer in versioned text.
+If the cursor position is after the end of the `endif` tag, we use the `pop()` method on each of three arrays to delete the last element of the array:
+- `versionDescription` - in this case we delete `versionDescription[0]` which contains "ghes". We delete this because this description no longer applies to the text at the cursor position. If the `endif` tag had been part of a nested tag set at this point we'd delete `versionDescription[1]` which would return us to the un-nested versioning: "ghes". By deleting `versionDescription[0]` we have an empty `versionDescription` array again, which indicates we're back in unversioned text again, with no versioning message to display.
+- `elsedVersions` - we collected versions here to use for an `else` tag span if we encountered one. Now that we're leaving this tag set we no longer need these versions, so we delete them.
+-`currentTagSpan` - in this case we delete `currentTagSpan[0]` which contains the ID of the tag previous to `endif`, in this case the `ifversion` tag. We know the cursor isn't in that tag span, or any span in the tag set we're leaving, so we need to delete this element of the array. If the `endif` tag had been part of a nested tag set at this point we'd delete `currentTagSpan[1]` which would leave `currentTagSpan` containing the ID of the parent span in which the nested tag set we've just left was contained. By deleting `currentTagSpan[0]` we have an empty `currentTagSpan` array again, which indicates we're back in unversioned text again, with no tags to highlight.
+
+Finally, for all `endif` tags, we decrement `nestingLevel` from 0 back to -1, indicating that we're no longer in versioned text.
 
 Now let's say the cursor position is somewhere within "Free/Pro/Team" in the above extract.
 
 After processing the first `endif` tag we move on to the second `ifversion` tag. We now:
 - Increment the tag counter to 3. This is the unique ID for this, the third tag in the file.
+- Get the start and end positions of the tag (i.e. the position of `{` and `}`).
 - Increment `nestingLevel` from -1 to 0.
 - Assign the tag counter value to `tagSetID[nestingLevel]`.
-- Get the start and end positions of the tag (i.e. the position of `{` and `}`).
+- Assign the tag counter value to `currentTagSpan[nestingLevel]`.
 - Create a new element in the `versionTags` array, containing the unique ID, the tag set number, and the start and end positions of the tag.
 - Check whether the cursor position is after the end position of the tag. It is, so we:
 - Assign the version "ghec" to `versionDescription[nestingLevel]`.
@@ -177,7 +187,7 @@ Now, with the cursor position somewhere within "Free/Pro/Team" in the above extr
 At the end of the parsing phase:
 
 - `currentTagSpan` is an array of tag ID numbers (one per nesting level) that tells us which tag spans contain the current cursor position. The last element in the `currentTagSpan` array tells us which tag span the cursor is directly within. If there is just one element, the cursor is within an un-nested tag set. If there are two or more elements, the cursor is within a nested tag set, with `currentTagSpan[level]` identifying the containing tag span at each nesting level. If this array is empty then there's no versioning at the cursor position.
-- `versionDescription` is array of strings (one per nesting level) that we can use to assemble a complete description of the versioning at the cursor position. `versionDescription[0]` contains the description of un-nested versioning. In most cases this will be the only element in this array, because nesting isn't very common. Where there is nesting `versionDescription[1]` will contain the description of the versioning for the first level of nesting. A description could be very simple, such as "ghec" or, if the cursor is within an `else` tag span that follows several `elsif` tags in a tag set, it could be a longer string, such as "NOT fpt or ghec\nAND NOT ghes = 3.7\nAND NOT ghes".
+- `versionDescription` is an array of strings (one per nesting level) that we can use to assemble a complete description of the versioning at the cursor position. `versionDescription[0]` contains the description of un-nested versioning. In most cases this will be the only element in this array, because nesting isn't very common. Where there is nesting `versionDescription[1]` will contain the description of the versioning for the first level of nesting. A description could be very simple, such as "ghec" or, if the cursor is within an `else` tag span that follows several `elsif` tags in a tag set, it could be a longer string, such as "NOT fpt or ghec\nAND NOT ghes = 3.7\nAND NOT ghes".
 - `versionTags` is an array of tag objects that tell us which characters in the editor to highlight for a particular tag, and which tag set the tag belongs to. This allows us to look up the tag sets to highlight when the cursor is within any given tag span.
 
 ### 2. Highlighting tags and displaying a versioning message
@@ -188,15 +198,47 @@ Having parsed the contents of the Markdown file, we now have the `currentTagSpan
 
 Highlighting is done in the `highlightVersionTags()` function.
 
-First we define some colors to be used to highlight the tag sets. We'll highlight each set of tags in a different color, so we define and array of object, with each object having a pair of properties: the background color of the highlighting, and the color of the text. It's rare to have more than one level of nesting, so we'll usually only need two pairs of colors, but we define three just in case there is some double-nesting anywhere.
+First we create and populate the `colorPairs` array which contains the colors to be used to highlight the tag sets. We use an array because we're going to highlight each set of tags, at different nesting levels, in a different color. We get the contents of this array from the `settings.json` file. The array values are written to the `settings.json` file, if they don't already exist, when the extension is first installed. The user can then edit the values in the `settings.json` file to change the colors used for highlighting. This is achieved by specifying the array in the extension's `package.json` file, as follows:
 
 ```
-const colorPairs = [
-    { backgroundColor: 'darkred', color: 'white' },
-    { backgroundColor: 'darkblue', color: 'yellow' },
-    { backgroundColor: 'green', color: 'black' }
-];
+"configuration": {
+  "type": "object",
+  "title": "Versioning Extension Configuration",
+  "properties": {
+    "version-identifier.colorPairs": {
+      "type": "array",
+      "default": [
+        {
+          "backgroundColor": "darkred",
+          "color": "white"
+        },
+        {
+          "backgroundColor": "darkblue",
+          "color": "yellow"
+        },
+        {
+          "backgroundColor": "green",
+          "color": "black"
+        }
+      ],
+      "description": "Color pairs",
+      "items": {
+        "type": "object",
+        "properties": {
+          "backgroundColor": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
 ```
+
+The object in each element of the array has a pair of properties: the background color of the highlighting, and the color of the text. We define three color pairs. It's rare to have more than one level of nesting, so we'll usually only need two pairs of colors, but we define three for the very rare instances of double-nesting.
 
 The tag set the cursor is directly within will use the first color pair. If this tag set is nested then the parent tag set will be highlighted using the second color pair, and so on. If there are additional levels of nesting in the Markdown we'll cycle back through the array of colors again.
 
@@ -204,23 +246,75 @@ We then iterate backwards through the `currentTagSpan` array, starting with the 
 
 Now, within this iteration of the nesting level loop, we then use `vscode.window.createTextEditorDecorationType` to define the decoration we want to use for the tag set that this tag span belongs to. The definition consists of a pair of colors, which we pluck from the `colorPairs` array.
 
-We add this definition to an array of decoration types that we declared at the start of the script. We'll use this later when we want to dispose of (i.e. remove) this type of decoration. We put it in an array so that we can dispose of all of the decoration types (i.e. the color pair for each nesting level) in a single operation.
+We add this definition to an array of decoration types that we declared at the start of the TypeScript file. We'll use this array later when we want to dispose of (i.e. remove) the decorations. We put it in an array so that we can dispose of all of the decoration types (i.e. the color pair for each nesting level) in a single operation.
 
-Then we create an array of `vscode.DecorationOptions` types. The only options we'll use are the positional range for each decoration (i.e. the start and end position of the tag we want to highlight). We'll fill up this array with details of all of the text ranges we want to highlight with this decoration type (i.e. all the tags that will have the same color highlighting).
+Then we create `decorationsArray` containing `vscode.DecorationOptions` types. The only options we'll use are the positional range for each decoration (i.e. the start and end position of the tag we want to highlight). We'll fill up this array with details of all of the text ranges we want to highlight with this decoration type (i.e. all the tags in a tag set that we want to decorate with same color highlighting).
 
-Still within the loop, for the tag span ID at this nesting level, we:
+Still within the loop for the tag span ID at this nesting level, we:
 - Get, from the `versionTags` array, the tag object for this tag span.
 - Get the ID of the tag set this tag belongs to.
 - Filter the `versionTags` array to get a subset array containing only those tag elements that have the same tag set ID as the one we just identified.
-- For each tag object in this filtered array, get the start and end positions as a vscode.Range, and push this into the decorations array for this nesting level (i.e. the tags with the same color of highlighting).
+- For each tag object in this filtered array, get the start and end positions as a vscode.Range, and push this into `decorationsArray` (i.e. the tags we want to decorate with the same color of highlighting).
 
-Finally, within the nesting level loop, we use `activeEditor.setDecorations` to apply the specified decoration type to all of the ranges in the decorations array.
+Finally, within the nesting level loop, we use `activeEditor.setDecorations` to apply the specified decoration type to all of the ranges in the `decorationsArray` array.
 
 Then, if there's version nesting, we iterate through the loop again, applying another color to the tags in the parent tag set.
 
 The .......... TODO: MENTION PRESSING ESC OR CHANGING THE CURSOR POSITION TO TRIGGER DISPOSING OF THE DECORATION TYPES. LINK TO REF FOR PACKAGE.JSON BELOW.
 
 For more information about applying decorations to text in VS Code, see https://github.com/microsoft/vscode-extension-samples/blob/main/decorator-sample/USAGE.md.
+
+#### Removing the highlighting
+
+When the user presses the Escape key, or moves the cursor, we want to remove the highlighting. We do this by disposing of the decoration types we created earlier.
+
+The code to do this is in the extension's `activate` function, near the top of the TypeScript file:
+
+```
+// Register a command to remove the decorations.
+// The command is defined in package.json and is bound to the escape key
+let removeDecorationsDisposable = vscode.commands.registerCommand(
+        'version-identifier.removeDecorations', () => {
+    // Remove all of the decorations that have been applied to the editor:
+    decorationDefinitionsArray.forEach(decoration => decoration.dispose());
+    decorationDefinitionsArray = [];
+});
+
+// Listen for selection changes in the editor
+let removeDecorationsOnCursorMove =
+vscode.window.onDidChangeTextEditorSelection(() => {
+    decorationDefinitionsArray.forEach(decoration => decoration.dispose());
+    decorationDefinitionsArray = [];
+});
+```
+
+Any time the Escape key is pressed, or the cursor is moved, we iterate through the `decorationDefinitionsArray` array, running `decoration.dispose()` on each element. This removes the highlighting from the editor. We then empty the array.
+
+We link the Escape keypress to the `version-identifier.removeDecorations` command in the `keybinding` section of the extension's `package.json` file:
+
+```
+"keybindings": [
+  {
+    "command": "version-identifier.runExtensionToast",
+    "key": "ctrl+cmd+v",
+    "mac": "ctrl+cmd+v",
+    "when": "editorTextFocus"
+  },
+  {
+    "command": "version-identifier.runExtensionModal",
+    "key": "shift+ctrl+cmd+v",
+    "mac": "shift+ctrl+cmd+v",
+    "when": "editorTextFocus"
+  },
+  {
+    "key": "escape",
+    "command": "version-identifier.removeDecorations",
+    "when": "editorTextFocus"
+  }
+],
+```
+
+Note: users can change any of the keybindings to whatever they prefer by editing their preferences - see: https://github.com/docs/version-identifier/blob/main/README.md#keyboard-shortcuts.
 
 #### Displaying a versioning message
 
