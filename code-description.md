@@ -19,6 +19,7 @@ The code is written in TypeScript. This file describes how the code works.
   - [Tag object properties](#tag-object-properties)
   - [Per-tag explanation](#per-tag-explanation)
   - [Regular expression](#regular-expression)
+  - [The package.json file](#the-packagejson-file)
 <br/>
 
 ## Terminology
@@ -486,7 +487,7 @@ When we find an `ifversion` tag we:
 
 When we find an `elsif` tag:
 - If `cursorIsAfterTagStart` is true we:
-  - Assign `tagCounter` to `currentTagSpan[nestingLevel]`. 
+  - Assign `tagCounter` to `currentTagSpan[nestingLevel]`.
   - Assign the version to `versionDescription[nestingLevel]`, prepending "AND " if we're in a nested tag set.
   - Set `elsedVersions[nestingLevel]` to `elsedVersions[nestingLevel] + " \nAND NOT " + match[2]` (e.g. "NOT ghes \nAND NOT ghec").
 
@@ -496,7 +497,7 @@ Note that we don't assign a value to `tagSetID[nestingLevel]` because this tag d
 
 When we find an `else` tag:
 - If `cursorIsAfterTagStart` is true we:
-  - Assign `tagCounter` to `currentTagSpan[nestingLevel]`. 
+  - Assign `tagCounter` to `currentTagSpan[nestingLevel]`.
   - Assign the `elsedVersions[nestingLevel]` to `versionDescription[nestingLevel]`, prepending "AND " if we're in a nested tag set.
 
 #### `endif`
