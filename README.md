@@ -26,7 +26,7 @@ The extension highlights each set of tags that affects the current cursor positi
 
 ![Screenshot of the extension in action](images/example-output.png)
 
-## Extension Settings
+## Extension settings
 
 You can change the settings for the tag highlighting and the keyboard shortcuts you use to run the extension.
 
@@ -71,10 +71,14 @@ To change the default keyboard shortcuts:
 
 The new shortcut is immediately available for use.
 
-## Known Issues
+## How the extension was coded
+
+For a description of how the Typescript code behind this extension works, see the [code-description.md](https://github.com/docs/version-identifier/blob/main/code-description.md) file.
+
+## Known issues
 
 None.
 
-## Release Notes
+## Release notes
 
-See ........ TODO: LINK TO NOTES
+For details of the changes in each release, See the [CHANGELOG.md](https://github.com/docs/version-identifier/blob/main/CHANGELOG.md) file.
