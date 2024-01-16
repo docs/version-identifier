@@ -382,28 +382,42 @@ In this case the `versionDescription` array will contain:
 
 Now the contents of `versioningString` will be: `ghec or ghes > 3.8 \nAND NOT ghes = 3.9 \nAND NOT ghes = 3.10`.
 
-
-
-
 ## Reference
 
 ### Variables and constants in alphabetical order
 
 The following variables and constants are used in the script. Except where marked, these are variables.
 
-- **cursorIsAfterTag  **: Boolean. This is set to true initially. We set it to false as soon as we get to a tag that comes after the cursor positiion during the parsing phase. This allows us to stop assigning version text to the `versionDescription` array.
+- **activeEditor**: an instance of the `TextEditor` class provided by the VS Code API. This instance represents the currently active text editor in VS Code.
+- **colorIndex**: a number used to step through the colors in the `colorPairs` array.
+- **colors**: a color pair object. This contains one pair of colors from the `colorPairs` array.
+- **config**: the configuration named "version-identifier". We extract this from the `settings.json` file. It contains the color pairs we'll use to highlight tags.
+- **cursorIsAfterTag**: Boolean. This is set to true initially. We set it to false as soon as we get to a tag that comes after the cursor positiion during the parsing phase. This allows us to stop assigning version text to the `versionDescription` array.
 - **currentTagSetID**: a number. This short-lived variable is just used to store the tag set ID of the tag we're currently processing when working out which tags to highlight.
 - **currentTagSpan[]**: an array of numbers. We store and retrieve values by using `nestingLevel` (i.e., `currentTagSpan[nestingLevel]`). The numbers identify the tag span (and possibly ancestor tag spans) in which the cursor is located. The last element in this array contains the ID of the tag span within which the cursor is directly located. Initially this array is empty, meaning the cursor is not within a tag span. Knowing the current tag span (and any ancestor spans), we can use the tag properties to find out which tag set(s) to highlight.
-- **cursorPosition**: (constant) a vscode.Position (i.e. a line number and the number of character on that line where the cursor currently sits).
+- **cursorIsAfterTagEnd**: a Boolean that we use when processing `endif` tags to work out whether the cursor is within the tag, or whether we need to step out of the current version tag set.
+- **cursorIsAfterTagStart**: a Boolean that we use to keep track of whether we've reached the cursor position yet - i.e. whether the tag being processed during parsing affects the text at the cursor position.
+- **cursorPosition**: (constant) a `vscode.Position` (i.e. a line number and the number of character on that line where the cursor currently sits).
+- **decorationDefinition**: a single decoration type object. We populate the `backgroundColor` and `color` properties of this object with details from the `colors` variable (i.e. one pair of colors).
+- **decorationDefinitionsArray**: an array of `vscode.TextEditorDecorationType` types. Each element in this array is the decoration type for one level of version nesting (including un-nested versioning). We collect the decoration types in this array so that we can iterate through it "disposing" of them when we want to remove the highlighting.
+- **decorationsArray[]**: a `vscode.DecorationOptions` array. Each element of this array will hold the positional range (i.e. a start and end position in the editor) for one tag to be highlighted for one tag set.
+- **description**: a string. The contents of one element of the `versionDescription` array. We use this short-lived variable when putting together the version message to display to the user.
+- **disposableModal**: a VS Code command we've created. We use this variable for the result of creating a command to run the extension. We then push this to VS Code's `context` object which it uses to keep track of resources like commands, listeners, and other disposables that should be cleaned up when the extension is deactivated.
+- **disposableToast**: another VS Code command for running the extension, but when this command is used to run the extension the version message will be displayed in a "toast" popup rather than a modal dialog box.
 - **elsedVersions[]**: an array of strings. As we're parsing through the a tag set, we build a string for each nesting level to use if we reach an `else` tag for the current tag set. The string contains an NOT-ed list of the versions in the `ifversion` and and `elsif` tags in the tag set. For example, if the tag set contains `{% ifversion ghes %} ... {%elsif ghec %} ... {% else %}` then, when we reach the `else` tag `elsedVersions[nestingLevel]` will contain "NOT ghes \nAND NOT ghec". The first time we add a version string to this array `elsedVersions[0]` we prepend "NOT ", and for any subsequent strings in any element of the array we prepend " AND NOT ". If a tag set contains an `else` tag we assign the value of `elsedVersions[nestingLevel]` to `versionDescription[nestingLevel]`.
-- **highlightBackgroundColor**: (constant) an array of strings. Each nesting level, including none, has a different background color. For instance: `highlightBackgroundColor[0]`, for tags in an un-nested tag set, might be "red".
-- **highlightForegroundColor**: (constant) an array of strings. The color of the text in the highlighted tags at each nesting level. Generally, where the background colors are all strong/dark colors, all elements of `highlightForegroundColor` will be set to "white".
+- **highlightBackgroundColor[]**: (constant) an array of strings. Each nesting level, including none, has a different background color. For instance: `highlightBackgroundColor[0]`, for tags in an un-nested tag set, might be "red".
+- **highlightForegroundColor[]**: (constant) an array of strings. The color of the text in the highlighted tags at each nesting level. Generally, where the background colors are all strong/dark colors, all elements of `highlightForegroundColor` will be set to "white".
 - **match[]**: an array of strings. This is used to store the text matched by the regular expression that we use to find version tags in the Markdown file.
+- **matchingTags[]**: a subset of the `versionTags` array, containing just the tag objects for one tag set.
 - **message**: a string. This short-lived variable is just used to assemble the final message text that we'll display to the user.
 - **nestingLevel**: a number. This records the nesting level of versioning at the cursor position. When we start parsing the Markdown file, this is set to -1. Each time we find an `ifversion` tag, during parsing, we increment this value. So at the first `ifversion` tag, `nestingLevel` gets incremented to 0. A nesting level of 0 means there's versioning, but we're in a base level tag set with no nesting. Each time we find an `endif` tag we decrement this value. So, if we reach the end of an un-nested tag set without encountering another `ifversion` tag then we decrement `nestingLevel` back to -1 (no versioning).
 - **positionString**: a string containing " at the cursor position (line _n_, character _n_) ". We use this in the message displayed to the user.
-- **ranges**: an array of vscode.Range objects. Each element of this array identifies the start and end a range of text (a tag) that we'll highlight in the VS Code editor.
+- **ranges[]**: an array of vscode.Range objects. Each element of this array identifies the start and end a range of text (a tag) that we'll highlight in the VS Code editor.
+- **removeDecorationsDisposable**: a VS Code command we've created to dispose of the text decorations in the `decorationDefinitionsArray` array.
+- **removeDecorationsOnCursorMove**: a VS Code listener that disposes of the text decorations in the `decorationDefinitionsArray` array whenever the cursor is moved after you run the extension.
 - **tagCounter**: a number. Each version tag in the Markdown file gets a unique ID. During parsing of the file, each time we come to another tag we increment this number.
+- **tagID**: a number used to identify a particular version tag. We use this when iterating through the tag IDs in the `currentTagSpan` array.
+- **tagObject**: one element extracted from the `versionTags` array. This contains the tag ID, tag set ID, and start and end positions for a single tag.
 - **tagSetID[]**: an array of numbers. Each version tag belongs to a tag set. The tag set ID is the ID of the `ifversion` tag for that tag set. During parsing of the file, each time we come to another `ifversion` tag we set `tagSetID[nestingLevel]` to the newly incremented `tagID`. We can then assign this value to the `tagSet` property of each tag object we create for the tags in this tag set.
 - **versionDescription[]**: an array of strings. Each nesting level, including none, has a description of the versioning at that level. `versionDescription[0]` contains the description of un-nested versioning. In most cases this will be the only element in this array, because nesting isn't very common. Where there is nesting `versionDescription[1]` will contain the description of the versioning for the first level of nesting. A description could be very simple, such as "ghec" or, if the cursor is within an `else` tag span that follows several `elsif` tags in a tag set, it could be a longer string, such as "NOT fpt or ghec\nAND NOT ghes = 3.7\nAND NOT ghes".
 - **versioningString**: a string. This is the string that we'll build up from the `versionDescription` array and use to display a message to the user.
