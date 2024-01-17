@@ -3,7 +3,7 @@
 
 The purpose of this extension is to identify the versioning that applies at the current cursor position within a Markdown file.
 
-The code is written in TypeScript. This file describes how the code works.
+The code is written in TypeScript, in the [extension.ts](https://github.com/docs/version-identifier/blob/main/src/extension.ts) file. This article describes how the code works.
 
 ## Contents
 
