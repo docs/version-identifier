@@ -38,6 +38,18 @@
     ],
     "keybindings": [
       {
+        "command": "version-identifier.runExtensionToast",
+        "key": "ctrl+cmd+v",
+        "mac": "ctrl+cmd+v",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "version-identifier.runExtensionModal",
+        "key": "shift+ctrl+cmd+v",
+        "mac": "shift+ctrl+cmd+v",
+        "when": "editorTextFocus"
+      },      
+      {
         "key": "escape",
         "command": "version-identifier.removeDecorations",
         "when": "editorTextFocus"
