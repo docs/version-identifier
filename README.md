@@ -18,8 +18,8 @@ There are options for how you want the message to be displayed. You can show the
 
 To use the extension, either:
 - Use a keypress:
-  - For the "toast" message, press <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>v</kbd> (Windows/Linux) or <kbd>control</kbd>+<kbd>command</kbd>+<kbd>v</kbd> (Mac)
-  - For the modal popup, press <kbd>Shift</kbd>+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>v</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>control</kbd>+<kbd>command</kbd>+<kbd>v</kbd> (Mac)
+  - For the "toast" message, press <kbd>Alt</kbd>+<kbd>j</kbd> (Windows/Linux) or <kbd>control</kbd>+<kbd>command</kbd>+<kbd>v</kbd> (Mac)
+  - For the modal popup, press <kbd>Shift</kbd>+<kbd>Alt</kbd>+<kbd>j</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>control</kbd>+<kbd>command</kbd>+<kbd>v</kbd> (Mac)
 - Go to the Command Palette (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>p</kbd> (Windows/Linux) or <kbd>Shift</kbd>+<kbd>command</kbd>+<kbd>p</kbd> (Mac)), type `version` and select either **Versioning identification (Toast)** or **Versioning identification (Modal)**.
 
 The extension highlights each set of tags that affects the current cursor position in a different color. In this example, the cursor is in the word "series" on line 112. The text at that point is within a set of tags that's nested within another tag set, that's also nested. So three sets of tags are highlighted. The "toast" popup describes the versioning.

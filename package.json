@@ -3,7 +3,7 @@
   "displayName": "Versioning Identifier",
   "description": "Highlight the Liquid versioning that applies at any point within a Markdown file.",
   "icon": "images/versioning-identifier-logo-128px.png",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "AlistairChristie",
   "license": "See the LICENSE file",
   "keywords": [
@@ -39,13 +39,13 @@
     "keybindings": [
       {
         "command": "version-identifier.runExtensionToast",
-        "key": "ctrl+cmd+v",
+        "key": "alt+j",
         "mac": "ctrl+cmd+v",
         "when": "editorTextFocus"
       },
       {
         "command": "version-identifier.runExtensionModal",
-        "key": "shift+ctrl+cmd+v",
+        "key": "shift+alt+j",
         "mac": "shift+ctrl+cmd+v",
         "when": "editorTextFocus"
       },
