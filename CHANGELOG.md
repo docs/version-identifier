@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.0.3
+24 January 2024
+
+- Clarify the keybindings in the README.
+
 ## 1.0.2
 24 January 2024
 
