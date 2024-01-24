@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.0.2
+24 January 2024
+
+- Fixed the keybindings for Windows. These are now `alt + j` for the toast popup and `shift + alt + j` for the modal popup.
+
 ## 1.0.1
 16 January 2024
 
